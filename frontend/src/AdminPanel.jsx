@@ -36,7 +36,9 @@ import {
   Check,
   Tag,
   DollarSign,
-  Image as ImageIcon
+  Image as ImageIcon,
+  MessageSquare,
+  ThumbsUp
 } from "lucide-react";
 import axios from "axios";
 import "./admin.css";
@@ -68,6 +70,7 @@ export default function AdminPanel({
     if (p === "/admin/add-product") return "add-product";
     if (p === "/admin/products") return "products";
     if (p === "/admin/orders") return "orders";
+    if (p === "/admin/reviews") return "reviews";
     if (p === "/admin/analytics") return "analytics";
     if (p === "/admin/customers") return "customers";
     if (p === "/admin/settings") return "settings";
@@ -81,6 +84,23 @@ export default function AdminPanel({
   const [orderStatusFilter, setOrderStatusFilter] = useState("All");
   const [backendOnline, setBackendOnline] = useState(false);
   const [toast, setToast] = useState(null);
+
+  // Admin Reviews Moderation State
+  const [adminReviews, setAdminReviews] = useState([]);
+  const [adminReviewsLoading, setAdminReviewsLoading] = useState(false);
+  const [adminReviewSearch, setAdminReviewSearch] = useState("");
+  const [adminReviewRatingFilter, setAdminReviewRatingFilter] = useState("All");
+  const [adminReviewProductFilter, setAdminReviewProductFilter] = useState("All");
+  const [adminReviewSort, setAdminReviewSort] = useState("recent");
+  const [adminReviewPage, setAdminReviewPage] = useState(1);
+  const [adminReviewTotalPages, setAdminReviewTotalPages] = useState(1);
+  const [adminReviewsMetrics, setAdminReviewsMetrics] = useState({
+    totalReviews: 0,
+    averageRating: 0,
+    fiveStarReviews: 0,
+    criticalReviews: 0,
+    verifiedPurchases: 0
+  });
 
   // Modal states for edit & order details
   const [editingProduct, setEditingProduct] = useState(null);
@@ -368,6 +388,67 @@ export default function AdminPanel({
     showToast("Order removed");
   };
 
+  // Fetch admin reviews from MongoDB
+  const fetchAdminReviews = async () => {
+    setAdminReviewsLoading(true);
+    try {
+      let url = `http://localhost:5000/api/reviews/admin?page=${adminReviewPage}&limit=12&sort=${adminReviewSort}`;
+      if (adminReviewSearch.trim()) url += `&q=${encodeURIComponent(adminReviewSearch.trim())}`;
+      if (adminReviewRatingFilter !== "All") url += `&rating=${adminReviewRatingFilter}`;
+      if (adminReviewProductFilter !== "All") url += `&productId=${encodeURIComponent(adminReviewProductFilter)}`;
+
+      const res = await axios.get(url, {
+        headers: { "x-admin-key": "techzone-admin-secret" }
+      });
+
+      if (res.data?.success) {
+        setAdminReviews(res.data.reviews || []);
+        if (res.data.metrics) {
+          setAdminReviewsMetrics(res.data.metrics);
+        }
+        if (res.data.pagination) {
+          setAdminReviewTotalPages(res.data.pagination.totalPages || 1);
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to load admin reviews:", err);
+    } finally {
+      setAdminReviewsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "reviews" || activeTab === "dashboard") {
+      fetchAdminReviews();
+    }
+  }, [activeTab, adminReviewPage, adminReviewSort, adminReviewRatingFilter, adminReviewProductFilter]);
+
+  // Handle Admin Delete Review
+  const handleDeleteReviewAdmin = async (reviewId, customerName, productTitle) => {
+    if (!window.confirm(`Are you sure you want to delete review by "${customerName}" for "${productTitle}"? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const res = await axios.delete(`http://localhost:5000/api/reviews/${reviewId}`, {
+        headers: { "x-admin-key": "techzone-admin-secret" }
+      });
+      if (res.data?.success) {
+        showToast("Review permanently deleted from catalog.");
+        fetchAdminReviews();
+        // Sync updated ratings to frontend product list
+        axios.get("http://localhost:5000/api/products").then((r) => {
+          if (r.data?.length) {
+            setProducts(r.data);
+            localStorage.setItem("techzone_products", JSON.stringify(r.data));
+          }
+        }).catch(() => {});
+      }
+    } catch (err) {
+      showToast(err.response?.data?.message || "Failed to delete review", "error");
+    }
+  };
+
   // Filtered Products
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
@@ -501,6 +582,27 @@ export default function AdminPanel({
           </button>
 
           <button
+            className={`admin-nav-item ${activeTab === "reviews" ? "active" : ""}`}
+            onClick={() => handleTabChange("reviews")}
+            id="admin-nav-reviews-btn"
+          >
+            <Star size={18} />
+            <span>Reviews</span>
+            {adminReviewsMetrics.totalReviews > 0 && (
+              <span
+                className="badge"
+                style={{
+                  background: activeTab === "reviews" ? "#f59e0b" : "rgba(245, 158, 11, 0.2)",
+                  color: activeTab === "reviews" ? "#000" : "#fbbf24",
+                  fontWeight: "700"
+                }}
+              >
+                {adminReviewsMetrics.totalReviews}
+              </span>
+            )}
+          </button>
+
+          <button
             className={`admin-nav-item ${activeTab === "analytics" ? "active" : ""}`}
             onClick={() => handleTabChange("analytics")}
           >
@@ -551,6 +653,7 @@ export default function AdminPanel({
               {activeTab === "products" && "Product Catalog Management"}
               {activeTab === "add-product" && "Add New Product"}
               {activeTab === "orders" && "Customer Orders Management"}
+              {activeTab === "reviews" && "Customer Product Reviews & Moderation"}
               {activeTab === "analytics" && "Store Performance & Analytics"}
               {activeTab === "customers" && "Customer Directory"}
               {activeTab === "settings" && "Store Settings & Tools"}
@@ -1521,7 +1624,9 @@ export default function AdminPanel({
                           <strong style={{ color: "#34d399", fontSize: "15px" }}>
                             ₹{(o.totalAmount || 0).toLocaleString("en-IN")}
                           </strong>
-                          <div style={{ fontSize: "10px", color: "#10b981" }}>● Paid</div>
+                          <div style={{ fontSize: "11px", fontWeight: "600", color: o.paymentStatus === "Paid" ? "#10b981" : "#f59e0b" }}>
+                            ● {o.paymentStatus || (o.paymentMethod === "Cash on Delivery" ? "Pending" : "Paid")}
+                          </div>
                         </td>
                         <td>
                           <select
@@ -1567,6 +1672,521 @@ export default function AdminPanel({
                     )}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+
+          {/* =========================================================
+              TAB: REVIEWS & RATINGS MANAGEMENT
+             ========================================================= */}
+          {activeTab === "reviews" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "24px" }} id="admin-reviews-tab-container">
+              {/* Reviews KPI Stats Grid */}
+              <div className="admin-stats-grid">
+                <div className="admin-stat-card">
+                  <div className="stat-glow-line glow-blue" />
+                  <div className="stat-card-header">
+                    <span>Total Reviews</span>
+                    <div className="stat-icon-wrapper icon-blue">
+                      <MessageSquare size={20} />
+                    </div>
+                  </div>
+                  <h3 className="stat-value">{adminReviewsMetrics.totalReviews}</h3>
+                  <div className="stat-footer">
+                    <span>Across product catalog</span>
+                  </div>
+                </div>
+
+                <div className="admin-stat-card">
+                  <div className="stat-glow-line glow-amber" />
+                  <div className="stat-card-header">
+                    <span>Average Rating</span>
+                    <div className="stat-icon-wrapper icon-amber">
+                      <Star size={20} fill="#f59e0b" />
+                    </div>
+                  </div>
+                  <h3 className="stat-value">
+                    {adminReviewsMetrics.averageRating ? adminReviewsMetrics.averageRating.toFixed(1) : "0.0"}{" "}
+                    <span style={{ fontSize: "16px", color: "#f59e0b" }}>★</span>
+                  </h3>
+                  <div className="stat-footer">
+                    <span className="trend-up">{adminReviewsMetrics.fiveStarReviews} five-star ratings</span>
+                  </div>
+                </div>
+
+                <div className="admin-stat-card">
+                  <div className="stat-glow-line glow-emerald" />
+                  <div className="stat-card-header">
+                    <span>Verified Purchases</span>
+                    <div className="stat-icon-wrapper icon-emerald">
+                      <CheckCircle2 size={20} />
+                    </div>
+                  </div>
+                  <h3 className="stat-value">{adminReviewsMetrics.verifiedPurchases}</h3>
+                  <div className="stat-footer">
+                    <span>Confirmed order buyers</span>
+                  </div>
+                </div>
+
+                <div className="admin-stat-card">
+                  <div className="stat-glow-line glow-purple" />
+                  <div className="stat-card-header">
+                    <span>Critical Reviews</span>
+                    <div className="stat-icon-wrapper icon-purple">
+                      <AlertTriangle size={20} />
+                    </div>
+                  </div>
+                  <h3
+                    className="stat-value"
+                    style={{ color: adminReviewsMetrics.criticalReviews > 0 ? "#f87171" : "#fff" }}
+                  >
+                    {adminReviewsMetrics.criticalReviews}
+                  </h3>
+                  <div className="stat-footer">
+                    <span>1 or 2 star feedback</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Reviews Table Container with Filters */}
+              <div className="admin-card">
+                <div className="admin-card-header">
+                  <div>
+                    <h3>
+                      <Star size={18} fill="#f59e0b" /> Customer Product Reviews Moderation
+                    </h3>
+                    <p>Search, filter, view and moderate customer feedback across your electronics store</p>
+                  </div>
+                  <button
+                    className="admin-btn-secondary"
+                    onClick={fetchAdminReviews}
+                    title="Refresh reviews"
+                    style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+                    id="admin-reviews-refresh-btn"
+                  >
+                    <RefreshCw size={14} className={adminReviewsLoading ? "spin" : ""} /> Refresh
+                  </button>
+                </div>
+
+                {/* Filter and Search Bar */}
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "12px",
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                    margin: "18px 0 20px"
+                  }}
+                >
+                  {/* Search */}
+                  <div
+                    className="admin-search-box"
+                    style={{
+                      flex: "1 1 240px",
+                      maxWidth: "340px",
+                      display: "flex",
+                      alignItems: "center",
+                      background: "#171c21",
+                      border: "1px solid #333d47",
+                      borderRadius: "8px",
+                      padding: "0 12px"
+                    }}
+                  >
+                    <Search size={16} color="#64748b" />
+                    <input
+                      type="text"
+                      id="admin-review-search-input"
+                      placeholder="Search review comments or authors..."
+                      value={adminReviewSearch}
+                      onChange={(e) => {
+                        setAdminReviewSearch(e.target.value);
+                        setAdminReviewPage(1);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") fetchAdminReviews();
+                      }}
+                      style={{
+                        border: "none",
+                        background: "transparent",
+                        color: "#f8fafc",
+                        padding: "9px 10px",
+                        width: "100%",
+                        outline: "none",
+                        fontSize: "13px"
+                      }}
+                    />
+                    {adminReviewSearch && (
+                      <button
+                        onClick={() => {
+                          setAdminReviewSearch("");
+                          setTimeout(fetchAdminReviews, 50);
+                        }}
+                        style={{
+                          border: "none",
+                          background: "none",
+                          color: "#64748b",
+                          cursor: "pointer",
+                          padding: "0"
+                        }}
+                        aria-label="Clear search"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Rating Filter */}
+                  <select
+                    className="admin-select"
+                    id="admin-review-rating-filter"
+                    value={adminReviewRatingFilter}
+                    onChange={(e) => {
+                      setAdminReviewRatingFilter(e.target.value);
+                      setAdminReviewPage(1);
+                    }}
+                    style={{
+                      background: "#171c21",
+                      border: "1px solid #333d47",
+                      color: "#e2e8f0",
+                      padding: "9px 12px",
+                      borderRadius: "8px",
+                      fontSize: "13px",
+                      cursor: "pointer"
+                    }}
+                  >
+                    <option value="All">All Star Ratings</option>
+                    <option value="5">5 Stars ★★★★★</option>
+                    <option value="4">4 Stars ★★★★☆</option>
+                    <option value="3">3 Stars ★★★☆☆</option>
+                    <option value="2">2 Stars ★★☆☆☆</option>
+                    <option value="1">1 Star ★☆☆☆☆</option>
+                  </select>
+
+                  {/* Product Filter */}
+                  <select
+                    className="admin-select"
+                    id="admin-review-product-filter"
+                    value={adminReviewProductFilter}
+                    onChange={(e) => {
+                      setAdminReviewProductFilter(e.target.value);
+                      setAdminReviewPage(1);
+                    }}
+                    style={{
+                      background: "#171c21",
+                      border: "1px solid #333d47",
+                      color: "#e2e8f0",
+                      padding: "9px 12px",
+                      borderRadius: "8px",
+                      fontSize: "13px",
+                      maxWidth: "240px",
+                      cursor: "pointer"
+                    }}
+                  >
+                    <option value="All">All Products</option>
+                    {products.map((p) => (
+                      <option key={p._id} value={p._id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Sort Order */}
+                  <select
+                    className="admin-select"
+                    id="admin-review-sort-filter"
+                    value={adminReviewSort}
+                    onChange={(e) => {
+                      setAdminReviewSort(e.target.value);
+                      setAdminReviewPage(1);
+                    }}
+                    style={{
+                      background: "#171c21",
+                      border: "1px solid #333d47",
+                      color: "#e2e8f0",
+                      padding: "9px 12px",
+                      borderRadius: "8px",
+                      fontSize: "13px",
+                      cursor: "pointer"
+                    }}
+                  >
+                    <option value="recent">Most Recent</option>
+                    <option value="highest">Highest Rating</option>
+                    <option value="lowest">Lowest Rating</option>
+                    <option value="helpful">Most Helpful</option>
+                  </select>
+                </div>
+
+                {/* Reviews Table */}
+                <div className="admin-table-container">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: "220px" }}>Product</th>
+                        <th style={{ width: "160px" }}>Customer</th>
+                        <th style={{ width: "120px" }}>Rating</th>
+                        <th>Review Details</th>
+                        <th style={{ width: "110px" }}>Date</th>
+                        <th style={{ width: "80px", textAlign: "center" }}>Helpful</th>
+                        <th style={{ width: "95px", textAlign: "right" }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {adminReviews.map((rev) => {
+                        const prod =
+                          rev.productId ||
+                          products.find((p) => String(p._id) === String(rev.productIdStr)) ||
+                          {};
+                        return (
+                          <tr key={rev._id} id={`admin-review-row-${rev._id}`}>
+                            <td>
+                              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                {prod.image ? (
+                                  <img
+                                    src={prod.image}
+                                    alt={prod.name || "Product"}
+                                    style={{
+                                      width: "42px",
+                                      height: "42px",
+                                      objectFit: "contain",
+                                      background: "#14181c",
+                                      borderRadius: "6px",
+                                      padding: "2px",
+                                      border: "1px solid #2e3740"
+                                    }}
+                                  />
+                                ) : (
+                                  <div
+                                    style={{
+                                      width: "42px",
+                                      height: "42px",
+                                      background: "#242c33",
+                                      borderRadius: "6px",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      color: "#64748b"
+                                    }}
+                                  >
+                                    <Package size={18} />
+                                  </div>
+                                )}
+                                <div>
+                                  <strong
+                                    style={{
+                                      color: "#f8fafc",
+                                      fontSize: "13px",
+                                      display: "block",
+                                      maxWidth: "150px",
+                                      whiteSpace: "nowrap",
+                                      overflow: "hidden",
+                                      textOverflow: "ellipsis"
+                                    }}
+                                  >
+                                    {prod.name || "Product"}
+                                  </strong>
+                                  <span style={{ fontSize: "11px", color: "#38bdf8" }}>
+                                    {prod.category || "Electronics"}
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+
+                            <td>
+                              <div>
+                                <strong style={{ color: "#f8fafc", fontSize: "13px" }}>
+                                  {rev.customerName}
+                                </strong>
+                                {rev.isVerifiedPurchase && (
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: "3px",
+                                      color: "#34d399",
+                                      fontSize: "11px",
+                                      marginTop: "2px"
+                                    }}
+                                  >
+                                    <CheckCircle2 size={12} /> Verified Buyer
+                                  </div>
+                                )}
+                                {rev.customerEmail && (
+                                  <div
+                                    style={{
+                                      fontSize: "11px",
+                                      color: "#64748b",
+                                      marginTop: "2px",
+                                      maxWidth: "140px",
+                                      overflow: "hidden",
+                                      textOverflow: "ellipsis"
+                                    }}
+                                  >
+                                    {rev.customerEmail}
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+
+                            <td>
+                              <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                                {[1, 2, 3, 4, 5].map((s) => (
+                                  <Star
+                                    key={s}
+                                    size={12}
+                                    fill={s <= rev.rating ? "#f59e0b" : "none"}
+                                    color={s <= rev.rating ? "#f59e0b" : "#475569"}
+                                  />
+                                ))}
+                                <span
+                                  style={{
+                                    color: "#fff",
+                                    fontWeight: "700",
+                                    fontSize: "12px",
+                                    marginLeft: "4px"
+                                  }}
+                                >
+                                  {rev.rating}.0
+                                </span>
+                              </div>
+                            </td>
+
+                            <td>
+                              <div>
+                                <strong
+                                  style={{
+                                    color: "#f1f5f9",
+                                    fontSize: "13px",
+                                    display: "block",
+                                    marginBottom: "4px"
+                                  }}
+                                >
+                                  {rev.title}
+                                </strong>
+                                <p
+                                  style={{
+                                    color: "#94a3b8",
+                                    fontSize: "12px",
+                                    margin: 0,
+                                    lineHeight: 1.5,
+                                    maxHeight: "54px",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis"
+                                  }}
+                                >
+                                  {rev.comment}
+                                </p>
+                              </div>
+                            </td>
+
+                            <td>
+                              <span style={{ fontSize: "12px", color: "#94a3b8" }}>
+                                {new Date(rev.createdAt).toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric"
+                                })}
+                              </span>
+                            </td>
+
+                            <td style={{ textAlign: "center" }}>
+                              <span
+                                style={{
+                                  fontSize: "12px",
+                                  color: (rev.helpfulVotes || 0) > 0 ? "#10b981" : "#64748b",
+                                  fontWeight: "600"
+                                }}
+                              >
+                                👍 {rev.helpfulVotes || 0}
+                              </span>
+                            </td>
+
+                            <td style={{ textAlign: "right" }}>
+                              <div className="table-actions" style={{ justifyContent: "flex-end" }}>
+                                <button
+                                  className="action-icon-btn"
+                                  onClick={() =>
+                                    onViewProduct(prod._id ? prod : { _id: rev.productIdStr })
+                                  }
+                                  title="View Product in Store"
+                                >
+                                  <ExternalLink size={14} />
+                                </button>
+                                <button
+                                  className="action-icon-btn delete-btn"
+                                  onClick={() =>
+                                    handleDeleteReviewAdmin(
+                                      rev._id,
+                                      rev.customerName,
+                                      prod.name || "Product"
+                                    )
+                                  }
+                                  title="Delete Review (Moderation)"
+                                  id={`admin-delete-review-${rev._id}`}
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+
+                      {adminReviews.length === 0 && !adminReviewsLoading && (
+                        <tr>
+                          <td colSpan="7" style={{ textAlign: "center", padding: "48px 20px" }}>
+                            <p style={{ color: "#94a3b8", fontSize: "15px", margin: "0 0 12px" }}>
+                              No reviews match your search or filters.
+                            </p>
+                            <button
+                              className="admin-btn-secondary"
+                              onClick={() => {
+                                setAdminReviewSearch("");
+                                setAdminReviewRatingFilter("All");
+                                setAdminReviewProductFilter("All");
+                                setAdminReviewSort("recent");
+                              }}
+                            >
+                              Reset Review Filters
+                            </button>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination Controls */}
+                {adminReviewTotalPages > 1 && (
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginTop: "18px",
+                      padding: "12px 6px"
+                    }}
+                  >
+                    <span style={{ fontSize: "13px", color: "#94a3b8" }}>
+                      Page {adminReviewPage} of {adminReviewTotalPages}
+                    </span>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <button
+                        className="admin-btn-secondary"
+                        disabled={adminReviewPage <= 1}
+                        onClick={() => setAdminReviewPage((p) => Math.max(1, p - 1))}
+                      >
+                        Previous
+                      </button>
+                      <button
+                        className="admin-btn-secondary"
+                        disabled={adminReviewPage >= adminReviewTotalPages}
+                        onClick={() => setAdminReviewPage((p) => p + 1)}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1960,11 +2580,18 @@ export default function AdminPanel({
                 </div>
 
                 <div>
-                  <h4 style={{ margin: "0 0 6px", color: "#38bdf8", fontSize: "13px" }}>Shipping Address</h4>
+                  <h4 style={{ margin: "0 0 6px", color: "#38bdf8", fontSize: "13px" }}>Shipping & Payment</h4>
                   <div style={{ color: "#cbd5e1", fontSize: "13px" }}>
                     {selectedOrderDetails.customer?.address}
                     {selectedOrderDetails.customer?.city ? `, ${selectedOrderDetails.customer.city}` : ""}
+                    {selectedOrderDetails.customer?.state ? `, ${selectedOrderDetails.customer.state}` : ""}
                     {selectedOrderDetails.customer?.pincode ? ` - ${selectedOrderDetails.customer.pincode}` : ""}
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#94a3b8", marginTop: "6px" }}>
+                    Method: <strong style={{ color: "#e2e8f0" }}>{selectedOrderDetails.paymentMethod || "Cash on Delivery"}</strong>
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#94a3b8" }}>
+                    Payment Status: <strong style={{ color: selectedOrderDetails.paymentStatus === "Paid" ? "#34d399" : "#fbbf24" }}>{selectedOrderDetails.paymentStatus || "Pending"}</strong>
                   </div>
                 </div>
               </div>
@@ -2003,18 +2630,32 @@ export default function AdminPanel({
                 </div>
               </div>
 
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--admin-border)", paddingTop: "14px" }}>
-                <div>
-                  <span style={{ fontSize: "12px", color: "#94a3b8" }}>Current Status: </span>
-                  <span className={`order-status-badge status-${selectedOrderDetails.status}`}>
-                    {selectedOrderDetails.status}
-                  </span>
-                </div>
-                <div>
-                  <span style={{ fontSize: "12px", color: "#94a3b8", marginRight: "8px" }}>Total Amount:</span>
-                  <strong style={{ color: "#34d399", fontSize: "20px" }}>
-                    ₹{(selectedOrderDetails.totalAmount || 0).toLocaleString("en-IN")}
-                  </strong>
+              <div style={{ borderTop: "1px solid var(--admin-border)", paddingTop: "14px", marginTop: "12px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                {selectedOrderDetails.discount > 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#34d399" }}>
+                    <span>Coupon Discount {selectedOrderDetails.couponCode ? `(${selectedOrderDetails.couponCode})` : ""}</span>
+                    <span>−₹{selectedOrderDetails.discount.toLocaleString("en-IN")}</span>
+                  </div>
+                )}
+                {selectedOrderDetails.shippingFee !== undefined && (
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#94a3b8" }}>
+                    <span>Shipping Charges ({selectedOrderDetails.shippingMethod || "Standard"})</span>
+                    <span>{selectedOrderDetails.shippingFee === 0 ? "FREE" : `₹${selectedOrderDetails.shippingFee}`}</span>
+                  </div>
+                )}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "6px" }}>
+                  <div>
+                    <span style={{ fontSize: "12px", color: "#94a3b8" }}>Current Status: </span>
+                    <span className={`order-status-badge status-${selectedOrderDetails.status}`}>
+                      {selectedOrderDetails.status}
+                    </span>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: "12px", color: "#94a3b8", marginRight: "8px" }}>Total Amount:</span>
+                    <strong style={{ color: "#34d399", fontSize: "20px" }}>
+                      ₹{(selectedOrderDetails.totalAmount || 0).toLocaleString("en-IN")}
+                    </strong>
+                  </div>
                 </div>
               </div>
             </div>

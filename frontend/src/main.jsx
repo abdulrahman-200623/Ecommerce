@@ -1,4 +1,4 @@
-import React,{useEffect,useMemo,useState}from"react";import{createRoot}from"react-dom/client";import{BrowserRouter,Link}from"react-router-dom";import{Search,ShoppingCart,UserRound,UserPlus,Heart,ChevronDown,Star,Truck,SlidersHorizontal,Globe2,ArrowRight,ShieldCheck,CheckCircle2,X}from"lucide-react";import axios from"axios";import"./styles.css";import AdminPanel from"./AdminPanel";
+import React,{useEffect,useMemo,useState,useRef,useCallback}from"react";import{createRoot}from"react-dom/client";import{BrowserRouter,Link}from"react-router-dom";import{Search,ShoppingCart,UserRound,UserPlus,Heart,ChevronDown,Star,Truck,SlidersHorizontal,ArrowRight,ShieldCheck,CheckCircle2,X}from"lucide-react";import axios from"axios";import"./styles.css";import"./reviews.css";import"./checkout.css";import AdminPanel from"./AdminPanel";import WishlistPage from"./WishlistPage";import ProductReviewsSection from"./ProductReviewsSection";import CheckoutPage from"./CheckoutPage";import OrderSuccessPage from"./OrderSuccessPage";import HeroSlider from"./HeroSlider";import TechZoneLogo from"./TechZoneLogo";
 const demo=[
   {
     "_id": "1",
@@ -657,11 +657,14 @@ function pathKey(){
   if(p.startsWith('/admin')) return 'admin';
   if(p.startsWith('/products/')) return 'product-detail'; 
   if(p==='/products') return 'products'; 
+  if(p==='/wishlist') return 'wishlist'; 
   if(p==='/features') return 'features'; 
   if(p==='/enterprise') return 'enterprise'; 
   if(p==='/support') return 'support'; 
   if(p==='/pricing') return 'pricing'; 
   if(p==='/cart') return 'cart'; 
+  if(p==='/checkout') return 'checkout'; 
+  if(p.startsWith('/order-success/')) return 'order-success'; 
   return 'home';
 }
 
@@ -747,60 +750,153 @@ const initialSampleOrders = [
   }
 ];
 
-function Header({count}){
+function Header({count, wishlistCount = 0, currentRoute}){
   const nav=(key)=>goPath(key==='home'?'/':'/'+key);
   return <header className="topbar">
-    <button className="mark" onClick={()=>nav('home')} aria-label="TechZone home"><Globe2 size={27}/></button>
+    <TechZoneLogo onClick={()=>nav('home')} />
     <nav className="mainnav">
-      <button onClick={()=>nav('home')}>Home</button>
-      <button onClick={()=>nav('products')}>Product</button>
-      <button onClick={()=>nav('features')}>Features</button>
-      <button onClick={()=>nav('enterprise')}>Enterprise</button>
-      <button onClick={()=>nav('support')}>Support</button>
-      <button onClick={()=>nav('pricing')}>Pricing</button>
+      <button className={currentRoute==='home'?'nav-active':''} onClick={()=>nav('home')}>Home</button>
+      <button className={currentRoute==='products'?'nav-active':''} onClick={()=>nav('products')}>Product</button>
+      <button className={currentRoute==='wishlist'?'nav-active':''} onClick={()=>nav('wishlist')}>Wishlist</button>
+      <button className={currentRoute==='features'?'nav-active':''} onClick={()=>nav('features')}>Features</button>
+      <button className={currentRoute==='enterprise'?'nav-active':''} onClick={()=>nav('enterprise')}>Enterprise</button>
+      <button className={currentRoute==='support'?'nav-active':''} onClick={()=>nav('support')}>Support</button>
+      <button className={currentRoute==='pricing'?'nav-active':''} onClick={()=>nav('pricing')}>Pricing</button>
     </nav>
     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-      <button className="cartIcon" onClick={()=>nav('cart')} aria-label="Open cart"><ShoppingCart size={27}/><span>{count}</span></button>
+      <button
+        className={`wishlistIcon ${currentRoute==='wishlist'?'active':''}`}
+        onClick={()=>nav('wishlist')}
+        aria-label="Open wishlist"
+        title="Wishlist"
+        id="navbar-wishlist-btn"
+      >
+        <Heart size={25} fill={wishlistCount > 0 ? "#ef4444" : "none"} color={wishlistCount > 0 ? "#ef4444" : "currentColor"}/>
+        {wishlistCount > 0 && <span className="wishlistBadge" id="navbar-wishlist-count">{wishlistCount}</span>}
+      </button>
+      <button className="cartIcon" onClick={()=>nav('cart')} aria-label="Open cart" title="Cart" id="navbar-cart-btn">
+        <ShoppingCart size={27}/>
+        <span>{count}</span>
+      </button>
       <button className="adminPillBtn" onClick={()=>goPath('/admin')} aria-label="Open Admin Console"><ShieldCheck size={16}/> Admin</button>
     </div>
   </header>
 }
 
-function Card({p,add,onOpen}){
-  return <article className="card" onClick={()=>onOpen(p)}>
+function Card({p,add,onOpen,isWishlisted,onToggleWishlist}){
+  const wishlisted = !!isWishlisted;
+  const reviewCount = Number(p.reviews) || 0;
+  const ratingScore = reviewCount > 0 && p.rating ? Number(p.rating).toFixed(1) : "0.0";
+  return <article className="card" onClick={()=>onOpen(p)} id={`product-card-${p._id}`}>
     <b className="discount">{p.discount}% OFF</b>
-    <button className="heart" onClick={e=>e.stopPropagation()}><Heart size={19}/></button>
+    <button
+      className={`heart ${wishlisted ? 'active' : ''}`}
+      onClick={e=>{
+        e.stopPropagation();
+        if(onToggleWishlist) onToggleWishlist(p);
+      }}
+      title={wishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
+      aria-label={wishlisted ? `Remove ${p.name} from Wishlist` : `Add ${p.name} to Wishlist`}
+      id={`heart-btn-${p._id}`}
+    >
+      <Heart size={19} fill={wishlisted ? "#ef4444" : "none"} color={wishlisted ? "#ef4444" : "currentColor"}/>
+    </button>
     <div className="pic"><img src={p.image} alt={p.name}/></div>
-    <div className="rating"><Star size={13} fill="#f4a300"/> {p.rating} <span>({p.reviews})</span></div>
+    <div className="rating">
+      <Star size={13} fill={reviewCount > 0 ? "#f4a300" : "none"} color={reviewCount > 0 ? "#f4a300" : "#64748b"}/> {ratingScore} <span>({reviewCount})</span>
+    </div>
     <h3>{p.name}</h3><p>{p.description}</p>
     <div className="price"><strong>₹{p.price.toLocaleString("en-IN")}</strong><del>₹{p.originalPrice.toLocaleString("en-IN")}</del><b>{p.discount}% off</b></div>
     <div className="delivery"><Truck size={14}/> Free Delivery <span>In Stock</span></div>
-    <button className="add" onClick={e=>{e.stopPropagation();add(p)}}><ShoppingCart size={16}/>Add to Cart</button>
-    <div className="viewHint">Click to view details</div>
+    <button className="add" onClick={e=>{e.stopPropagation();add(p)}} id={`add-btn-${p._id}`}><ShoppingCart size={16}/>Add to Cart</button>
+    <div className="viewHint">Click to view details & reviews</div>
   </article>
 }
 
-function ProductDetail({product,products,add}){
+function ProductDetail({product,products,add,isWishlisted,onToggleWishlist,checkIsWishlisted,userId,showToast,onProductRatingUpdate}){
   if(!product) return <section className="page"><div className="emptyPage"><h1>Product not found</h1><button className="primaryBtn" onClick={()=>goPath('/products')}>Back to Products</button></div></section>;
   const related=products.filter(p=>p.category===product.category&&p._id!==product._id).slice(0,5);
+
+  const [currentRating, setCurrentRating] = useState(product?.rating ?? 4.5);
+  const [currentReviewsCount, setCurrentReviewsCount] = useState(product?.reviews ?? 0);
+
+  useEffect(() => {
+    if (product) {
+      setCurrentRating(product.rating ?? 4.5);
+      setCurrentReviewsCount(product.reviews ?? 0);
+    }
+  }, [product?._id]);
+
+  const onProductRatingUpdateRef = useRef(onProductRatingUpdate);
+  useEffect(() => {
+    onProductRatingUpdateRef.current = onProductRatingUpdate;
+  }, [onProductRatingUpdate]);
+
+  const handleRatingUpdate = useCallback((newStats) => {
+    if (newStats) {
+      setCurrentRating(newStats.averageRating);
+      setCurrentReviewsCount(newStats.totalReviews);
+      if (onProductRatingUpdateRef.current && product) {
+        onProductRatingUpdateRef.current(product._id, newStats.averageRating, newStats.totalReviews);
+      }
+    }
+  }, [product?._id]);
+
   return <main className="page productPage">
     <button className="backBtn" onClick={()=>goPath('/products')}>← Back to Products</button>
     <section className="productDetail fullDetail">
       <div className="detailImage"><img src={product.image} alt={product.name}/></div>
       <div className="detailInfo"><span className="detailCat">{product.category}</span><h1>{product.name}</h1>
-        <div className="detailRating"><Star size={16} fill="#f4a300"/> {product.rating} ({product.reviews} reviews)</div>
+        <div className="detailRating">
+          <Star size={16} fill={currentReviewsCount > 0 ? "#f4a300" : "none"} color={currentReviewsCount > 0 ? "#f4a300" : "#64748b"}/>
+          <strong style={{ marginLeft: "5px", color: "#f8fafc" }}>{currentReviewsCount > 0 ? Number(currentRating).toFixed(1) : "0.0"}</strong>
+          <span style={{ color: "#94a3b8", marginLeft: "4px" }}>({currentReviewsCount} {currentReviewsCount === 1 ? 'review' : 'reviews'})</span>
+          <a
+            href="#reviews-section"
+            className="jumpToReviews"
+            onClick={(e)=>{
+              e.preventDefault();
+              document.getElementById("reviews-section")?.scrollIntoView({ behavior: "smooth" });
+            }}
+          >
+            {currentReviewsCount > 0 ? "Read Customer Reviews ↓" : "Write First Review ↓"}
+          </a>
+        </div>
         <p>{product.description}</p>
         <div className="detailPrice">₹{product.price.toLocaleString("en-IN")} <del>₹{product.originalPrice.toLocaleString("en-IN")}</del> <b>{product.discount}% OFF</b></div>
         <div className="detailStock">✓ In Stock &nbsp; • &nbsp; Free Delivery &nbsp; • &nbsp; 7 Days Return</div>
-        <div className="detailActions"><button className="detailAdd" onClick={()=>add(product)}><ShoppingCart size={18}/> Add to Cart</button><button className="buyBtn" onClick={()=>{add(product);goPath('/cart')}}>Buy Now <ArrowRight size={17}/></button></div>
+        <div className="detailActions">
+          <button className="detailAdd" onClick={()=>add(product)} id="detail-add-cart-btn"><ShoppingCart size={18}/> Add to Cart</button>
+          <button
+            className={`detailWishlistBtn ${isWishlisted ? 'active' : ''}`}
+            onClick={()=>onToggleWishlist && onToggleWishlist(product)}
+            title={isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
+            aria-label={isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
+            id="detail-wishlist-toggle-btn"
+          >
+            <Heart size={18} fill={isWishlisted ? "#ef4444" : "none"} color={isWishlisted ? "#ef4444" : "currentColor"}/>
+            {isWishlisted ? "In Wishlist" : "Add to Wishlist"}
+          </button>
+          <button className="buyBtn" onClick={()=>{add(product);goPath('/cart')}} id="detail-buy-now-btn">Buy Now <ArrowRight size={17}/></button>
+        </div>
       </div>
     </section>
     <section className="detailDescription"><span>PRODUCT DETAILS</span><h2>About this product</h2><p>{product.description}. Designed for everyday performance with reliable quality, modern features and a great user experience.</p></section>
-    {related.length>0&&<section className="related"><h2>Related Products</h2><div className="grid">{related.map(p=><Card key={p._id} p={p} add={add} onOpen={x=>goPath('/products/'+encodeURIComponent(x._id))}/>)}</div></section>}
+
+    {/* Complete TechZone Reviews & Ratings System */}
+    <ProductReviewsSection
+      productId={product._id}
+      productName={product.name}
+      userId={userId}
+      onRatingUpdate={handleRatingUpdate}
+      showToast={showToast}
+    />
+
+    {related.length>0&&<section className="related"><h2>Related Products</h2><div className="grid">{related.map(p=><Card key={p._id} p={p} add={add} onOpen={x=>goPath('/products/'+encodeURIComponent(x._id))} isWishlisted={checkIsWishlisted ? checkIsWishlisted(p._id) : false} onToggleWishlist={onToggleWishlist}/>)}</div></section>}
   </main>
 }
 
-function Products({add,initialCategory='All',products,setProducts}){
+function Products({add,initialCategory='All',products,setProducts,checkIsWishlisted,onToggleWishlist}){
   const[q,setQ]=useState(""),[cat,setCat]=useState(initialCategory),[sort,setSort]=useState("Featured"),[page,setPage]=useState(1);
   const perPage=50;
   useEffect(()=>setCat(initialCategory),[initialCategory]);
@@ -814,7 +910,7 @@ function Products({add,initialCategory='All',products,setProducts}){
     <div className="title"><h1>{cat==='All'?'All Products':cat}</h1><p>Discover the best deals on latest electronics</p></div>
     <div className="filters"><div className="filter"><Search size={18}/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search products..."/></div><div className="select"><select value={cat} onChange={e=>setCat(e.target.value)}>{cats.map(c=><option key={c}>{c}</option>)}</select><ChevronDown size={16}/></div><div className="sort"><SlidersHorizontal size={16}/>Sort by:<select value={sort} onChange={e=>setSort(e.target.value)}><option>Featured</option><option>Price: Low to High</option><option>Price: High to Low</option><option>Rating</option></select></div></div>
     <div className="resultCount">Showing {list.length?(page-1)*perPage+1:0}-{Math.min(page*perPage,list.length)} of {list.length} products</div>
-    <div className="grid">{visible.map(p=><Card key={p._id} p={p} add={add} onOpen={openProduct}/>)}</div>
+    <div className="grid">{visible.map(p=><Card key={p._id} p={p} add={add} onOpen={openProduct} isWishlisted={checkIsWishlisted ? checkIsWishlisted(p._id) : false} onToggleWishlist={onToggleWishlist}/>)}</div>
     <div className="pages"><button disabled={page===1} onClick={()=>{setPage(page-1);window.scrollTo({top:0,behavior:'smooth'})}}>‹</button>{Array.from({length:total},(_,i)=>i+1).map(n=><button key={n} className={page===n?'on':''} onClick={()=>{setPage(n);window.scrollTo({top:0,behavior:'smooth'})}}>{n}</button>)}<button disabled={page===total} onClick={()=>{setPage(page+1);window.scrollTo({top:0,behavior:'smooth'})}}>›</button></div>
   </main>
 }
@@ -868,7 +964,7 @@ function CartPage({items,onRemove,onAdd,onCheckout}){
     );
   }
 
-  return <main className="page cartPage"><div className="title"><h1>Shopping Cart</h1><p>Review your products and continue to checkout.</p></div>{items.length===0?<div className="emptyPage"><ShoppingCart size={55}/><h2>Your cart is empty</h2><button className="primaryBtn" onClick={()=>goPath('/products')}>Continue Shopping</button></div>:<div className="cartLayout"><div className="cartList">{items.map(x=><div className="cartRow" key={x._id}><img src={x.image} alt={x.name}/><div><h3>{x.name}</h3><p>{x.description}</p><strong>₹{x.price.toLocaleString('en-IN')}</strong><div className="qty"><button onClick={()=>onRemove(x._id)}>−</button><span>{x.qty}</span><button onClick={()=>onAdd(x)}>+</button></div></div></div>)}</div><aside className="summary"><h2>Price Details</h2><div><span>Items</span><span>{items.reduce((s,x)=>s+x.qty,0)}</span></div><div><span>Total</span><strong>₹{total.toLocaleString('en-IN')}</strong></div><button className="checkoutBtn" onClick={()=>setShowCheckout(true)}>Proceed to Checkout</button></aside></div>}
+  return <main className="page cartPage"><div className="title"><h1>Shopping Cart</h1><p>Review your products and continue to checkout.</p></div>{items.length===0?<div className="emptyPage"><ShoppingCart size={55}/><h2>Your cart is empty</h2><button className="primaryBtn" onClick={()=>goPath('/products')}>Continue Shopping</button></div>:<div className="cartLayout"><div className="cartList">{items.map(x=><div className="cartRow" key={x._id}><img src={x.image} alt={x.name}/><div><h3>{x.name}</h3><p>{x.description}</p><strong>₹{x.price.toLocaleString('en-IN')}</strong><div className="qty"><button onClick={()=>onRemove(x._id)}>−</button><span>{x.qty}</span><button onClick={()=>onAdd(x)}>+</button></div></div></div>)}</div><aside className="summary"><h2>Price Details</h2><div><span>Items</span><span>{items.reduce((s,x)=>s+x.qty,0)}</span></div><div><span>Total</span><strong>₹{total.toLocaleString('en-IN')}</strong></div><button className="checkoutBtn" id="cart-proceed-checkout-btn" onClick={()=>goPath('/checkout')}>Proceed to Checkout →</button></aside></div>}
 
     {showCheckout && (
       <div className="admin-modal-backdrop" onClick={()=>setShowCheckout(false)}>
@@ -928,16 +1024,44 @@ function InfoPage({type}){
  return <main className="page infoPage"><div className="infoHero"><span>TECHZONE</span><h1>{data[0]}</h1><p>{data[1]}</p><button className="primaryBtn" onClick={()=>goPath('/products')}>Explore Products <ArrowRight size={17}/></button></div><div className="infoCards">{data[2].map((x,i)=><div key={x}><b>0{i+1}</b><h2>{x}</h2><p>Built into the TechZone shopping experience.</p></div>)}</div></main>
 }
 
-function Home({add}){
- return <>
-  <section className="hero" id="home">
-   <div className="heroProduct phoneHero"><img src={demo[0].image} alt="TechZone mobile"/></div>
-   <div className="heroContent"><span className="heroEyebrow">LATEST TECH · BEST PRICES</span><h1>Upgrade Your<br/><span>Tech Life</span></h1><p>Discover the latest mobiles, headphones, laptops and accessories from top brands.</p><div className="heroLinks"><button className="shopBtn" onClick={()=>goPath('/products')}>Shop Now <ArrowRight size={18}/></button><button onClick={()=>goPath('/features')}>Explore categories <ArrowRight size={17}/></button></div></div>
-   <div className="heroProduct headphoneHero"><img src={demo[2].image} alt="TechZone headphones"/></div><div className="heroMini earbudsHero"><img src={demo[5].image} alt="TechZone earbuds"/></div><div className="heroMini watchHero"><img src={demo[3].image} alt="TechZone smartwatch"/></div>
-  </section>
-  <section className="featureStrip"><div><span>01</span><h2>Mobiles</h2><p>Latest smartphones with powerful performance.</p><button onClick={()=>goPath('/products?category=Mobiles')}>Shop Now →</button><img src={demo[4].image} alt="Mobiles"/></div><div><span>02</span><h2>Headphones</h2><p>Feel the sound like never before.</p><button onClick={()=>goPath('/products?category=Headphones')}>Shop Now →</button><img src={demo[2].image} alt="Headphones"/></div><div><span>03</span><h2>Laptops</h2><p>Power for your big ideas.</p><button onClick={()=>goPath('/products?category=Laptops')}>Shop Now →</button><img src={demo[1].image} alt="Laptop"/></div><div><span>04</span><h2>Accessories</h2><p>Smart add-ons. Big difference.</p><button onClick={()=>goPath('/products?category=Accessories')}>Shop Now →</button><img src={demo[3].image} alt="Accessories"/></div></section>
-  <section className="homeIntro"><span>TECHZONE FOR EVERYONE</span><h2>Everything you need for your digital life.</h2><p>Shop trusted electronics, compare products, add to cart and move from browsing to checkout without leaving the experience.</p><button className="primaryBtn" onClick={()=>goPath('/products')}>Explore Products <ArrowRight size={17}/></button></section>
- </>
+function Toast({ toast, onClose }){
+  if (!toast) return null;
+  return (
+    <aside className={`toastBanner ${toast.type || 'wishlist-add'}`} role="status">
+      <div className="toastContent">
+        <span className="toastIcon">{toast.icon || "❤️"}</span>
+        <div>
+          <div className="toastTitle">{toast.title}</div>
+          {toast.message && <div className="toastMsg">{toast.message}</div>}
+        </div>
+      </div>
+      <button className="toastClose" onClick={onClose} aria-label="Dismiss notification"><X size={16} /></button>
+    </aside>
+  );
+}
+
+function Home({add, products = [], checkIsWishlisted, onToggleWishlist}){
+  const featured = (products.length ? products : demo).slice(0, 4);
+  return <>
+    {/* Modern Hero Banner Image Carousel / Slider */}
+    <HeroSlider onNavigate={goPath} />
+   <section className="featureStrip"><div><span>01</span><h2>Mobiles</h2><p>Latest smartphones with powerful performance.</p><button onClick={()=>goPath('/products?category=Mobiles')}>Shop Now →</button><img src={demo[4].image} alt="Mobiles"/></div><div><span>02</span><h2>Headphones</h2><p>Feel the sound like never before.</p><button onClick={()=>goPath('/products?category=Headphones')}>Shop Now →</button><img src={demo[2].image} alt="Headphones"/></div><div><span>03</span><h2>Laptops</h2><p>Power for your big ideas.</p><button onClick={()=>goPath('/products?category=Laptops')}>Shop Now →</button><img src={demo[1].image} alt="Laptop"/></div><div><span>04</span><h2>Accessories</h2><p>Smart add-ons. Big difference.</p><button onClick={()=>goPath('/products?category=Accessories')}>Shop Now →</button><img src={demo[3].image} alt="Accessories"/></div></section>
+   <section className="page" style={{ margin: '40px auto 0' }}>
+     <div className="title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '18px' }}>
+       <div>
+         <h1>Trending Electronics</h1>
+         <p>Handpicked bestsellers with special discounts</p>
+       </div>
+       <button className="primaryBtn" onClick={()=>goPath('/products')}>View All Products →</button>
+     </div>
+     <div className="grid">
+       {featured.map(p=>(
+         <Card key={p._id} p={p} add={add} onOpen={x=>goPath('/products/'+encodeURIComponent(x._id))} isWishlisted={checkIsWishlisted ? checkIsWishlisted(p._id) : false} onToggleWishlist={onToggleWishlist}/>
+       ))}
+     </div>
+   </section>
+   <section className="homeIntro"><span>TECHZONE FOR EVERYONE</span><h2>Everything you need for your digital life.</h2><p>Shop trusted electronics, compare products, add to cart and move from browsing to checkout without leaving the experience.</p><button className="primaryBtn" onClick={()=>goPath('/products')}>Explore Products <ArrowRight size={17}/></button></section>
+  </>
 }
 
 function Footer(){
@@ -950,6 +1074,7 @@ function Footer(){
       <div>
         <h4>Shop</h4>
         <button onClick={()=>goPath('/products')}>All Products</button>
+        <button onClick={()=>goPath('/wishlist')}>My Wishlist</button>
         <button onClick={()=>goPath('/cart')}>Shopping Cart</button>
       </div>
       <div>
@@ -969,7 +1094,12 @@ function Footer(){
 }
 
 function App(){
-  const[cart,setCart]=useState([]);
+  const[cart,setCart]=useState(()=>{
+    try {
+      const s = localStorage.getItem("techzone_cart");
+      return s ? JSON.parse(s) : [];
+    } catch(e) { return []; }
+  });
   const[route,setRoute]=useState(pathKey());
   const[products,setProducts]=useState(()=>{
     try{
@@ -983,6 +1113,42 @@ function App(){
       return s?JSON.parse(s):initialSampleOrders;
     }catch(e){return initialSampleOrders}
   });
+
+  // Persistent User / Guest ID
+  const [userId] = useState(()=>{
+    try {
+      let uid = localStorage.getItem("techzone_user_id");
+      if (!uid) {
+        uid = "guest_" + Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
+        localStorage.setItem("techzone_user_id", uid);
+      }
+      return uid;
+    } catch(e) {
+      return "guest_user";
+    }
+  });
+
+  // Wishlist state initialized from localStorage
+  const [wishlist, setWishlist] = useState(()=>{
+    try {
+      const stored = localStorage.getItem("techzone_wishlist");
+      return stored ? JSON.parse(stored) : [];
+    } catch(e) {
+      return [];
+    }
+  });
+
+  // Toast notification state
+  const [toast, setToast] = useState(null);
+  const showToast = (title, message, type = "wishlist-add", icon = "❤️") => {
+    setToast({ title, message, type, icon });
+  };
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   useEffect(()=>{
     const onPop=()=>setRoute(pathKey());
@@ -999,11 +1165,104 @@ function App(){
         localStorage.setItem("techzone_orders",JSON.stringify(r.data));
       }
     }).catch(()=>{});
-    return()=>window.removeEventListener('popstate',onPop);
-  },[]);
 
-  const add=p=>setCart(c=>c.some(x=>x._id===p._id)?c.map(x=>x._id===p._id?{...x,qty:x.qty+1}:x):[...c,{...p,qty:1}]);
-  const remove=id=>setCart(c=>c.map(x=>x._id===id?{...x,qty:x.qty-1}:x).filter(x=>x.qty>0));
+    // Sync wishlist from backend MongoDB
+    axios.get(`http://localhost:5000/api/wishlist/${userId}`).then(r => {
+      if(r.data?.success && Array.isArray(r.data.items)){
+        setWishlist(r.data.items);
+        localStorage.setItem("techzone_wishlist", JSON.stringify(r.data.items));
+      }
+    }).catch(()=>{});
+
+    return()=>window.removeEventListener('popstate',onPop);
+  },[userId]);
+
+  const add=p=>{
+    setCart(c=>{
+      const next = c.some(x=>x._id===p._id)?c.map(x=>x._id===p._id?{...x,qty:x.qty+1}:x):[...c,{...p,qty:1}];
+      try { localStorage.setItem("techzone_cart", JSON.stringify(next)); } catch(e){}
+      return next;
+    });
+    showToast("Added to Cart", p.name, "cart-add", "🛒");
+  };
+  const remove=id=>setCart(c=>{
+    const next = c.map(x=>x._id===id?{...x,qty:x.qty-1}:x).filter(x=>x.qty>0);
+    try { localStorage.setItem("techzone_cart", JSON.stringify(next)); } catch(e){}
+    return next;
+  });
+
+  const checkIsWishlisted = (productId) => {
+    return wishlist.some(item => String(item.productId || item._id) === String(productId));
+  };
+
+  const toggleWishlist = (product) => {
+    const pId = String(product._id || product.productId);
+    const isSaved = wishlist.some(item => String(item.productId || item._id) === pId);
+
+    if (isSaved) {
+      const updated = wishlist.filter(item => String(item.productId || item._id) !== pId);
+      setWishlist(updated);
+      localStorage.setItem("techzone_wishlist", JSON.stringify(updated));
+      showToast("Removed from Wishlist", product.name, "wishlist-remove", "🤍");
+
+      axios.delete(`http://localhost:5000/api/wishlist/${pId}?userId=${userId}`).catch(()=>{});
+    } else {
+      const itemToSave = {
+        productId: pId,
+        name: product.name,
+        description: product.description || "",
+        price: product.price,
+        originalPrice: product.originalPrice || product.price,
+        discount: product.discount || 0,
+        category: product.category || "Electronics",
+        image: product.image,
+        rating: product.rating || 4.5,
+        reviews: product.reviews || 0,
+        stock: product.stock || 10
+      };
+      const updated = [itemToSave, ...wishlist];
+      setWishlist(updated);
+      localStorage.setItem("techzone_wishlist", JSON.stringify(updated));
+      showToast("Added to Wishlist", product.name, "wishlist-add", "❤️");
+
+      axios.post("http://localhost:5000/api/wishlist", {
+        userId,
+        productId: pId,
+        product: itemToSave
+      }).catch(()=>{});
+    }
+  };
+
+  const removeFromWishlist = (productId) => {
+    const pId = String(productId);
+    const removedItem = wishlist.find(item => String(item.productId || item._id) === pId);
+    const updated = wishlist.filter(item => String(item.productId || item._id) !== pId);
+    setWishlist(updated);
+    localStorage.setItem("techzone_wishlist", JSON.stringify(updated));
+    showToast("Removed from Wishlist", removedItem?.name || "Product", "wishlist-remove", "🤍");
+
+    axios.delete(`http://localhost:5000/api/wishlist/${pId}?userId=${userId}`).catch(()=>{});
+  };
+
+  const clearWishlist = () => {
+    setWishlist([]);
+    localStorage.setItem("techzone_wishlist", JSON.stringify([]));
+    showToast("Wishlist Cleared", "All products removed from wishlist", "wishlist-remove", "🗑️");
+
+    axios.delete(`http://localhost:5000/api/wishlist/clear/${userId}`).catch(()=>{});
+  };
+
+  const addWishlistItemToCart = (product) => {
+    add(product);
+  };
+
+  const addAllWishlistToCart = () => {
+    if (wishlist.length === 0) return;
+    wishlist.forEach(item => {
+      setCart(c=>c.some(x=>x._id===(item.productId || item._id))?c.map(x=>x._id===(item.productId || item._id)?{...x,qty:x.qty+1}:x):[...c,{...item, _id: item.productId || item._id, qty:1}]);
+    });
+    showToast("Added All to Cart", `${wishlist.length} products added to your cart!`, "cart-add", "🛍️");
+  };
 
   const handleCheckout=(newOrder)=>{
     const updated=[newOrder,...orders];
@@ -1012,6 +1271,26 @@ function App(){
     setCart([]);
     axios.post('http://localhost:5000/api/orders',newOrder).catch(()=>{});
   };
+
+  const handleProductRatingUpdate = useCallback((pId, avgRating, totalReviews) => {
+    setProducts((prev) => {
+      const existing = prev.find((p) => String(p._id) === String(pId));
+      if (
+        existing &&
+        Number(existing.rating) === Number(avgRating) &&
+        Number(existing.reviews) === Number(totalReviews)
+      ) {
+        return prev;
+      }
+      const updated = prev.map((p) =>
+        String(p._id) === String(pId) ? { ...p, rating: avgRating, reviews: totalReviews } : p
+      );
+      try {
+        localStorage.setItem("techzone_products", JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+  }, []);
 
   if(route==='admin'){
     return <AdminPanel
@@ -1027,12 +1306,24 @@ function App(){
   const currentId=decodeURIComponent(window.location.pathname.split('/').pop()||'');
   const selected=products.find(p=>String(p._id)===currentId);
   let content;
-  if(route==='home')content=<Home add={add}/>;
-  else if(route==='products')content=<Products add={add} products={products} setProducts={setProducts} initialCategory={new URLSearchParams(window.location.search).get('category')||'All'}/>;
-  else if(route==='product-detail')content=<ProductDetail product={selected} products={products} add={add}/>;
+  if(route==='home')content=<Home add={add} products={products} checkIsWishlisted={checkIsWishlisted} onToggleWishlist={toggleWishlist}/>;
+  else if(route==='products')content=<Products add={add} products={products} setProducts={setProducts} initialCategory={new URLSearchParams(window.location.search).get('category')||'All'} checkIsWishlisted={checkIsWishlisted} onToggleWishlist={toggleWishlist}/>;
+  else if(route==='product-detail')content=<ProductDetail product={selected} products={products} add={add} isWishlisted={selected ? checkIsWishlisted(selected._id) : false} onToggleWishlist={toggleWishlist} checkIsWishlisted={checkIsWishlisted} userId={userId} showToast={showToast} onProductRatingUpdate={handleProductRatingUpdate}/>;
+  else if(route==='wishlist')content=<WishlistPage wishlist={wishlist} onRemove={removeFromWishlist} onAddToCart={addWishlistItemToCart} onClearWishlist={clearWishlist} onAddAllToCart={addAllWishlistToCart} onOpenProduct={p=>goPath('/products/'+encodeURIComponent(p.productId || p._id))} onNavigate={goPath}/>;
   else if(route==='cart')content=<CartPage items={cart} onRemove={remove} onAdd={add} onCheckout={handleCheckout}/>;
+  else if(route==='checkout')content=<CheckoutPage cartItems={cart} onClearCart={()=>{setCart([]);try{localStorage.setItem("techzone_cart",JSON.stringify([]));}catch(e){}}} onNavigate={goPath} showToast={showToast} userId={userId}/>;
+  else if(route==='order-success'){
+    const orderId=decodeURIComponent(window.location.pathname.replace('/order-success/',''));
+    content=<OrderSuccessPage orderId={orderId} onNavigate={goPath} showToast={showToast}/>;
+  }
   else content=<InfoPage type={route}/>;
-  return <><Header count={cart.reduce((s,x)=>s+x.qty,0)}/>{content}<Footer/></>
+
+  return <>
+    <Header count={cart.reduce((s,x)=>s+x.qty,0)} wishlistCount={wishlist.length} currentRoute={route}/>
+    {content}
+    <Footer/>
+    <Toast toast={toast} onClose={()=>setToast(null)}/>
+  </>
 }
 createRoot(document.getElementById("root")).render(<BrowserRouter><App/></BrowserRouter>);
 
