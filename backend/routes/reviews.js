@@ -4,6 +4,7 @@ const Review = require("../models/Review");
 const Product = require("../models/Product");
 const Order = require("../models/Order");
 const jwt = require("jsonwebtoken");
+const { adminMiddleware, requirePermission } = require("../middleware/auth");
 
 // Helper to extract authentication info safely
 function extractAuth(req) {
@@ -516,7 +517,7 @@ router.post("/:id/helpful", async (req, res) => {
 // Admin management endpoint with search, product/rating filters,
 // and product populate
 // ====================================================================
-router.get("/admin", async (req, res) => {
+router.get("/admin", adminMiddleware, requirePermission("reviews"), async (req, res) => {
   try {
     const {
       q = "",

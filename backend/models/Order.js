@@ -11,6 +11,7 @@ const orderItemSchema = new mongoose.Schema({
 const orderSchema = new mongoose.Schema(
   {
     orderNumber: { type: String, required: true, unique: true },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", index: true },
     customer: {
       name: { type: String, required: true },
       email: { type: String, required: true },
@@ -29,7 +30,7 @@ const orderSchema = new mongoose.Schema(
     totalAmount: { type: Number, required: true },
     status: {
       type: String,
-      enum: ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"],
+      enum: ["Pending", "Confirmed", "Processing", "Shipped", "Delivered", "Cancelled", "Returned"],
       default: "Pending"
     },
     paymentMethod: { type: String, default: "Cash on Delivery" },
@@ -43,6 +44,14 @@ const orderSchema = new mongoose.Schema(
       gatewayOrderId: { type: String, default: "" },
       paymentSignature: { type: String, default: "" }
     },
+    statusTimeline: [
+      {
+        status: { type: String },
+        timestamp: { type: Date, default: Date.now },
+        note: { type: String, default: "" }
+      }
+    ],
+    estimatedDeliveryDate: { type: Date },
     notes: { type: String, default: "" }
   },
   { timestamps: true }

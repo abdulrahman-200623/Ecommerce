@@ -1,4 +1,58 @@
-import React,{useEffect,useMemo,useState,useRef,useCallback}from"react";import{createRoot}from"react-dom/client";import{BrowserRouter,Link}from"react-router-dom";import{Search,ShoppingCart,UserRound,UserPlus,Heart,ChevronDown,Star,Truck,SlidersHorizontal,ArrowRight,ShieldCheck,CheckCircle2,X}from"lucide-react";import axios from"axios";import"./styles.css";import"./reviews.css";import"./checkout.css";import AdminPanel from"./AdminPanel";import WishlistPage from"./WishlistPage";import ProductReviewsSection from"./ProductReviewsSection";import CheckoutPage from"./CheckoutPage";import OrderSuccessPage from"./OrderSuccessPage";import HeroSlider from"./HeroSlider";import TechZoneLogo from"./TechZoneLogo";
+import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
+import { createRoot } from "react-dom/client";
+import { BrowserRouter, Link } from "react-router-dom";
+import {
+  Search,
+  ShoppingCart,
+  UserRound,
+  UserPlus,
+  Heart,
+  ChevronDown,
+  Star,
+  Truck,
+  SlidersHorizontal,
+  ArrowRight,
+  ShieldCheck,
+  CheckCircle2,
+  X,
+  Package,
+  LogOut,
+  Zap,
+  RotateCcw
+} from "lucide-react";
+import axios from "axios";
+import "./styles.css";
+import "./reviews.css";
+import "./checkout.css";
+import "./account.css";
+import "./flashSale.css";
+import "./returns.css";
+import AdminPanel from "./AdminPanel";
+import AdminProtectedRoute from "./AdminProtectedRoute";
+import SuperAdminApp from "./SuperAdminApp";
+import WishlistPage from "./WishlistPage";
+import ProductReviewsSection from "./ProductReviewsSection";
+import CheckoutPage from "./CheckoutPage";
+import OrderSuccessPage from "./OrderSuccessPage";
+import HeroSlider from "./HeroSlider";
+import FeaturedPromotionsCarousel from "./FeaturedPromotionsCarousel";
+import TechZoneLogo from "./TechZoneLogo";
+import AuthModal from "./AuthModal";
+import MyAccountPage from "./MyAccountPage";
+import OrderHistoryPage from "./OrderHistoryPage";
+import OrderDetailsPage from "./OrderDetailsPage";
+import FlashSaleSection from "./FlashSaleSection";
+import FlashSalePage from "./FlashSalePage";
+import MyReturnsPage from "./MyReturnsPage";
+import ReturnDetailsPage from "./ReturnDetailsPage";
+import CategoryDropdown from "./CategoryDropdown";
+import ProductCard from "./ProductCard";
+import RecommendedProducts from "./RecommendedProducts";
+import RecentlyViewedSection from "./RecentlyViewedSection";
+import { recordProductView, syncHistoryOnLogin } from "./recentlyViewedService";
+import ShareProductButton from "./ShareProductButton";
+import { ThemeProvider } from "./ThemeContext";
+import ThemeDropdown from "./ThemeDropdown";
 const demo=[
   {
     "_id": "1",
@@ -654,10 +708,18 @@ const demo=[
 function goPath(path){window.history.pushState({},"",path);window.dispatchEvent(new PopStateEvent("popstate"))}
 function pathKey(){
   const p=window.location.pathname; 
+  if(p.startsWith('/superadmin')) return 'superadmin';
   if(p.startsWith('/admin')) return 'admin';
   if(p.startsWith('/products/')) return 'product-detail'; 
+  if(p==='/flash-sale') return 'flash-sale';
   if(p==='/products') return 'products'; 
   if(p==='/wishlist') return 'wishlist'; 
+  if(p==='/recently-viewed') return 'recently-viewed'; 
+  if(p==='/my-account') return 'my-account';
+  if(p.startsWith('/my-orders/')) return 'order-detail';
+  if(p==='/my-orders') return 'my-orders';
+  if(p.startsWith('/my-returns/')) return 'return-detail';
+  if(p==='/my-returns') return 'my-returns';
   if(p==='/features') return 'features'; 
   if(p==='/enterprise') return 'enterprise'; 
   if(p==='/support') return 'support'; 
@@ -750,72 +812,262 @@ const initialSampleOrders = [
   }
 ];
 
-function Header({count, wishlistCount = 0, currentRoute}){
+function Header({count, wishlistCount = 0, currentRoute, user, onLogout, onOpenAuthModal}){
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [searchVal, setSearchVal] = useState(() => {
+    try {
+      return new URLSearchParams(window.location.search).get('search') || "";
+    } catch(e) { return ""; }
+  });
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const nav=(key)=>goPath(key==='home'?'/':'/'+key);
-  return <header className="topbar">
-    <TechZoneLogo onClick={()=>nav('home')} />
-    <nav className="mainnav">
-      <button className={currentRoute==='home'?'nav-active':''} onClick={()=>nav('home')}>Home</button>
-      <button className={currentRoute==='products'?'nav-active':''} onClick={()=>nav('products')}>Product</button>
-      <button className={currentRoute==='wishlist'?'nav-active':''} onClick={()=>nav('wishlist')}>Wishlist</button>
-      <button className={currentRoute==='features'?'nav-active':''} onClick={()=>nav('features')}>Features</button>
-      <button className={currentRoute==='enterprise'?'nav-active':''} onClick={()=>nav('enterprise')}>Enterprise</button>
-      <button className={currentRoute==='support'?'nav-active':''} onClick={()=>nav('support')}>Support</button>
-      <button className={currentRoute==='pricing'?'nav-active':''} onClick={()=>nav('pricing')}>Pricing</button>
-    </nav>
-    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-      <button
-        className={`wishlistIcon ${currentRoute==='wishlist'?'active':''}`}
-        onClick={()=>nav('wishlist')}
-        aria-label="Open wishlist"
-        title="Wishlist"
-        id="navbar-wishlist-btn"
-      >
-        <Heart size={25} fill={wishlistCount > 0 ? "#ef4444" : "none"} color={wishlistCount > 0 ? "#ef4444" : "currentColor"}/>
-        {wishlistCount > 0 && <span className="wishlistBadge" id="navbar-wishlist-count">{wishlistCount}</span>}
-      </button>
-      <button className="cartIcon" onClick={()=>nav('cart')} aria-label="Open cart" title="Cart" id="navbar-cart-btn">
-        <ShoppingCart size={27}/>
-        <span>{count}</span>
-      </button>
-      <button className="adminPillBtn" onClick={()=>goPath('/admin')} aria-label="Open Admin Console"><ShieldCheck size={16}/> Admin</button>
-    </div>
-  </header>
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (searchVal.trim()) {
+      goPath('/products?search=' + encodeURIComponent(searchVal.trim()));
+    } else {
+      goPath('/products');
+    }
+  };
+
+  return (
+    <header className="site-header">
+      {/* Top Utility Announcement Bar */}
+      <div className="top-utility-bar">
+        <div className="utility-bar-container">
+          <div className="utility-bar-left">
+            <span>Free Express Delivery on orders over ₹999</span>
+            <span className="utility-separator">•</span>
+            <span>100% Genuine Electronics Guaranteed</span>
+            <span className="utility-separator">•</span>
+            <span>7-Day Easy Returns</span>
+          </div>
+          <div className="utility-bar-right">
+            <button type="button" onClick={()=>goPath('/support')}>Customer Support</button>
+            <span className="utility-separator">•</span>
+            <button type="button" onClick={()=>goPath('/my-orders')}>Track Order</button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Topbar Row */}
+      <div className="topbar">
+        <TechZoneLogo onClick={()=>nav('home')} />
+
+        {/* Real Store Functional Search Bar */}
+        <form className="header-search-form" onSubmit={handleSearchSubmit}>
+          <Search size={17} className="search-icon" />
+          <input
+            type="search"
+            value={searchVal}
+            onChange={(e) => setSearchVal(e.target.value)}
+            placeholder="Search phones, laptops, headphones, smartwatches..."
+            aria-label="Search electronics products"
+            id="navbar-search-input"
+          />
+          <button type="submit" className="search-submit-btn" id="navbar-search-submit-btn">
+            Search
+          </button>
+        </form>
+
+        {/* Right Controls: Theme, Wishlist, Cart, Profile */}
+        <div className="header-actions">
+          <ThemeDropdown />
+
+          <button
+            className={`wishlistIcon ${currentRoute==='wishlist'?'active':''}`}
+            onClick={()=>nav('wishlist')}
+            aria-label="Open wishlist"
+            title="Wishlist"
+            id="navbar-wishlist-btn"
+          >
+            <Heart size={18} fill={wishlistCount > 0 ? "#EF4444" : "none"} color={wishlistCount > 0 ? "#EF4444" : "currentColor"}/>
+            <span>Saved</span>
+            {wishlistCount > 0 && <span className="wishlistBadge" id="navbar-wishlist-count">{wishlistCount}</span>}
+          </button>
+
+          <button className="cartIcon" onClick={()=>nav('cart')} aria-label="Open cart" title="Cart" id="navbar-cart-btn">
+            <ShoppingCart size={18}/>
+            <span>Cart</span>
+            {count > 0 && <span className="cartBadge">{count}</span>}
+          </button>
+
+          {/* User Account Dropdown / Sign In Button */}
+          {user ? (
+            <div className="user-menu-wrapper" ref={dropdownRef}>
+              <button
+                className="user-topbar-btn"
+                onClick={()=>setDropdownOpen(!dropdownOpen)}
+                id="navbar-user-dropdown-btn"
+                aria-expanded={dropdownOpen}
+                title="User Account"
+              >
+                <div className="user-topbar-avatar">
+                  {user.name ? user.name.charAt(0).toUpperCase() : "U"}
+                </div>
+                <span>{user.name ? user.name.split(" ")[0] : "Account"}</span>
+                <ChevronDown size={14} />
+              </button>
+
+              {dropdownOpen && (
+                <div className="user-dropdown-menu">
+                  <div className="dropdown-user-info">
+                    <div className="dropdown-user-name">{user.name}</div>
+                    <div className="dropdown-user-email">{user.email}</div>
+                  </div>
+                  <button
+                    className="dropdown-item-btn"
+                    onClick={()=>{ setDropdownOpen(false); nav('my-account'); }}
+                    id="dropdown-my-account-btn"
+                  >
+                    <UserRound size={15} /> My Account
+                  </button>
+                  <button
+                    className="dropdown-item-btn"
+                    onClick={()=>{ setDropdownOpen(false); nav('my-orders'); }}
+                    id="dropdown-my-orders-btn"
+                  >
+                    <Package size={15} /> My Orders
+                  </button>
+                  <button
+                    className="dropdown-item-btn"
+                    onClick={()=>{ setDropdownOpen(false); goPath('/my-returns'); }}
+                    id="dropdown-my-returns-btn"
+                  >
+                    <RotateCcw size={15} /> Returns & Refunds
+                  </button>
+                  <button
+                    className="dropdown-item-btn"
+                    onClick={()=>{ setDropdownOpen(false); nav('wishlist'); }}
+                  >
+                    <Heart size={15} /> My Wishlist
+                  </button>
+                  <button
+                    className="dropdown-item-btn logout"
+                    onClick={()=>{ setDropdownOpen(false); onLogout(); }}
+                    id="dropdown-logout-btn"
+                  >
+                    <LogOut size={15} /> Sign Out
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              className="user-signin-btn"
+              onClick={onOpenAuthModal}
+              id="navbar-sign-in-btn"
+              title="Sign in or register"
+            >
+              <UserRound size={16} /> Sign In
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Secondary Navigation Bar: Store Links */}
+      <nav className="category-subnav">
+        <div className="subnav-container">
+          <div className="subnav-links">
+            <button className={currentRoute==='home'?'nav-active':''} onClick={()=>nav('home')}>Home</button>
+            <button className={currentRoute==='products'?'nav-active':''} onClick={()=>nav('products')}>Product</button>
+            <button className={`flash-link ${currentRoute==='flash-sale'?'nav-active':''}`} onClick={()=>goPath('/flash-sale')} id="navbar-flash-sale-link">⚡ Flash Sale</button>
+            <button className={currentRoute==='wishlist'?'nav-active':''} onClick={()=>nav('wishlist')}>Wishlist</button>
+            <button className={currentRoute==='my-orders'?'nav-active':''} onClick={()=>nav('my-orders')}>My Orders</button>
+            <button className={currentRoute==='features'?'nav-active':''} onClick={()=>nav('features')}>Features</button>
+            <button className={currentRoute==='enterprise'?'nav-active':''} onClick={()=>nav('enterprise')}>Enterprise</button>
+            <button className={currentRoute==='support'?'nav-active':''} onClick={()=>nav('support')}>Support</button>
+            <button className={currentRoute==='pricing'?'nav-active':''} onClick={()=>nav('pricing')}>Pricing</button>
+          </div>
+        </div>
+      </nav>
+    </header>
+  );
 }
 
-function Card({p,add,onOpen,isWishlisted,onToggleWishlist}){
-  const wishlisted = !!isWishlisted;
-  const reviewCount = Number(p.reviews) || 0;
-  const ratingScore = reviewCount > 0 && p.rating ? Number(p.rating).toFixed(1) : "0.0";
-  return <article className="card" onClick={()=>onOpen(p)} id={`product-card-${p._id}`}>
-    <b className="discount">{p.discount}% OFF</b>
-    <button
-      className={`heart ${wishlisted ? 'active' : ''}`}
-      onClick={e=>{
-        e.stopPropagation();
-        if(onToggleWishlist) onToggleWishlist(p);
-      }}
-      title={wishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
-      aria-label={wishlisted ? `Remove ${p.name} from Wishlist` : `Add ${p.name} to Wishlist`}
-      id={`heart-btn-${p._id}`}
-    >
-      <Heart size={19} fill={wishlisted ? "#ef4444" : "none"} color={wishlisted ? "#ef4444" : "currentColor"}/>
-    </button>
-    <div className="pic"><img src={p.image} alt={p.name}/></div>
-    <div className="rating">
-      <Star size={13} fill={reviewCount > 0 ? "#f4a300" : "none"} color={reviewCount > 0 ? "#f4a300" : "#64748b"}/> {ratingScore} <span>({reviewCount})</span>
-    </div>
-    <h3>{p.name}</h3><p>{p.description}</p>
-    <div className="price"><strong>₹{p.price.toLocaleString("en-IN")}</strong><del>₹{p.originalPrice.toLocaleString("en-IN")}</del><b>{p.discount}% off</b></div>
-    <div className="delivery"><Truck size={14}/> Free Delivery <span>In Stock</span></div>
-    <button className="add" onClick={e=>{e.stopPropagation();add(p)}} id={`add-btn-${p._id}`}><ShoppingCart size={16}/>Add to Cart</button>
-    <div className="viewHint">Click to view details & reviews</div>
-  </article>
+function Card(props){
+  return <ProductCard {...props} />;
 }
 
-function ProductDetail({product,products,add,isWishlisted,onToggleWishlist,checkIsWishlisted,userId,showToast,onProductRatingUpdate}){
-  if(!product) return <section className="page"><div className="emptyPage"><h1>Product not found</h1><button className="primaryBtn" onClick={()=>goPath('/products')}>Back to Products</button></div></section>;
-  const related=products.filter(p=>p.category===product.category&&p._id!==product._id).slice(0,5);
+function ProductDetail({productId, product: initialProduct, products = [], add, isWishlisted, onToggleWishlist, checkIsWishlisted, userId, showToast, onProductRatingUpdate, token}){
+  // Resolve product identifier from props or URL
+  const targetId = String(
+    productId ||
+    (initialProduct ? (initialProduct._id || initialProduct.productId) : "") ||
+    decodeURIComponent(window.location.pathname.replace(/^\/products\//, '').split('/')[0] || '')
+  );
+
+  const foundInList = useMemo(() => {
+    if (!products || !products.length || !targetId) return null;
+    return products.find(p => String(p._id) === targetId || String(p.productId) === targetId) || null;
+  }, [products, targetId]);
+
+  const [product, setProduct] = useState(() => initialProduct || foundInList || null);
+  const [loading, setLoading] = useState(() => !(initialProduct || foundInList));
+  const [error, setError] = useState(false);
+
+  // Smooth scroll to top whenever product route changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [targetId]);
+
+  // Record product view whenever loaded
+  useEffect(() => {
+    if (product && (product._id || product.productId)) {
+      recordProductView(product, token);
+    }
+  }, [product?._id, product?.productId, token]);
+
+  useEffect(() => {
+    if (initialProduct && (String(initialProduct._id) === targetId || String(initialProduct.productId) === targetId)) {
+      setProduct(initialProduct);
+      setLoading(false);
+      setError(false);
+      return;
+    }
+
+    if (foundInList) {
+      setProduct(foundInList);
+      setLoading(false);
+      setError(false);
+      return;
+    }
+
+    if (targetId) {
+      setLoading(true);
+      setError(false);
+      axios.get(`http://localhost:5000/api/products/${encodeURIComponent(targetId)}`)
+        .then(res => {
+          if (res.data && (res.data._id || res.data.name)) {
+            setProduct(res.data);
+            setError(false);
+          } else {
+            setError(true);
+          }
+        })
+        .catch(() => {
+          setError(true);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    } else {
+      setLoading(false);
+      setError(true);
+    }
+  }, [targetId, initialProduct, foundInList]);
 
   const [currentRating, setCurrentRating] = useState(product?.rating ?? 4.5);
   const [currentReviewsCount, setCurrentReviewsCount] = useState(product?.reviews ?? 0);
@@ -825,7 +1077,7 @@ function ProductDetail({product,products,add,isWishlisted,onToggleWishlist,check
       setCurrentRating(product.rating ?? 4.5);
       setCurrentReviewsCount(product.reviews ?? 0);
     }
-  }, [product?._id]);
+  }, [product?._id, product?.productId]);
 
   const onProductRatingUpdateRef = useRef(onProductRatingUpdate);
   useEffect(() => {
@@ -837,10 +1089,43 @@ function ProductDetail({product,products,add,isWishlisted,onToggleWishlist,check
       setCurrentRating(newStats.averageRating);
       setCurrentReviewsCount(newStats.totalReviews);
       if (onProductRatingUpdateRef.current && product) {
-        onProductRatingUpdateRef.current(product._id, newStats.averageRating, newStats.totalReviews);
+        onProductRatingUpdateRef.current(product._id || product.productId, newStats.averageRating, newStats.totalReviews);
       }
     }
-  }, [product?._id]);
+  }, [product?._id, product?.productId]);
+
+  if (loading) {
+    return (
+      <section className="page">
+        <div style={{ textAlign: "center", padding: "80px 20px", color: "#94a3b8" }}>
+          <div style={{ fontSize: "2rem", marginBottom: "16px" }}>⏳</div>
+          <h2>Loading product details...</h2>
+        </div>
+      </section>
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <section className="page">
+        <div className="emptyPage">
+          <h1>Product not found</h1>
+          <p style={{ color: "#94a3b8", marginBottom: "20px" }}>The requested product could not be found.</p>
+          <button className="primaryBtn" onClick={() => goPath('/products')}>Back to Products</button>
+        </div>
+      </section>
+    );
+  }
+
+  const currentProdId = String(product._id || product.productId);
+  const activeIsWishlisted = checkIsWishlisted ? checkIsWishlisted(currentProdId) : !!isWishlisted;
+
+  const handleOpenRelated = (p) => {
+    recordProductView(p, token);
+    const nextId = p._id || p.productId;
+    goPath('/products/' + encodeURIComponent(nextId));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return <main className="page productPage">
     <button className="backBtn" onClick={()=>goPath('/products')}>← Back to Products</button>
@@ -868,15 +1153,16 @@ function ProductDetail({product,products,add,isWishlisted,onToggleWishlist,check
         <div className="detailActions">
           <button className="detailAdd" onClick={()=>add(product)} id="detail-add-cart-btn"><ShoppingCart size={18}/> Add to Cart</button>
           <button
-            className={`detailWishlistBtn ${isWishlisted ? 'active' : ''}`}
+            className={`detailWishlistBtn ${activeIsWishlisted ? 'active' : ''}`}
             onClick={()=>onToggleWishlist && onToggleWishlist(product)}
-            title={isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
-            aria-label={isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
+            title={activeIsWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
+            aria-label={activeIsWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
             id="detail-wishlist-toggle-btn"
           >
-            <Heart size={18} fill={isWishlisted ? "#ef4444" : "none"} color={isWishlisted ? "#ef4444" : "currentColor"}/>
-            {isWishlisted ? "In Wishlist" : "Add to Wishlist"}
+            <Heart size={18} fill={activeIsWishlisted ? "#ef4444" : "none"} color={activeIsWishlisted ? "#ef4444" : "currentColor"}/>
+            {activeIsWishlisted ? "In Wishlist" : "Add to Wishlist"}
           </button>
+          <ShareProductButton product={product} showToast={showToast} />
           <button className="buyBtn" onClick={()=>{add(product);goPath('/cart')}} id="detail-buy-now-btn">Buy Now <ArrowRight size={17}/></button>
         </div>
       </div>
@@ -885,32 +1171,137 @@ function ProductDetail({product,products,add,isWishlisted,onToggleWishlist,check
 
     {/* Complete TechZone Reviews & Ratings System */}
     <ProductReviewsSection
-      productId={product._id}
+      productId={currentProdId}
       productName={product.name}
       userId={userId}
       onRatingUpdate={handleRatingUpdate}
       showToast={showToast}
     />
 
-    {related.length>0&&<section className="related"><h2>Related Products</h2><div className="grid">{related.map(p=><Card key={p._id} p={p} add={add} onOpen={x=>goPath('/products/'+encodeURIComponent(x._id))} isWishlisted={checkIsWishlisted ? checkIsWishlisted(p._id) : false} onToggleWishlist={onToggleWishlist}/>)}</div></section>}
+    {/* Dynamic "You May Also Like" Recommendation Section */}
+    <RecommendedProducts
+      currentProduct={product}
+      allProducts={products}
+      add={add}
+      onOpen={handleOpenRelated}
+      checkIsWishlisted={checkIsWishlisted}
+      onToggleWishlist={onToggleWishlist}
+      title="You May Also Like"
+    />
+
+    {/* Dynamic Recently Viewed Products Section */}
+    <RecentlyViewedSection
+      currentProductId={currentProdId}
+      add={add}
+      onOpen={handleOpenRelated}
+      checkIsWishlisted={checkIsWishlisted}
+      onToggleWishlist={onToggleWishlist}
+      token={token}
+      showToast={showToast}
+      onNavigate={goPath}
+    />
   </main>
 }
 
-function Products({add,initialCategory='All',products,setProducts,checkIsWishlisted,onToggleWishlist}){
-  const[q,setQ]=useState(""),[cat,setCat]=useState(initialCategory),[sort,setSort]=useState("Featured"),[page,setPage]=useState(1);
+const REQUIRED_CATEGORIES = [
+  "All",
+  "Mobiles",
+  "Accessories",
+  "Laptops",
+  "Smartwatches",
+  "Earbuds",
+  "Monitors",
+  "Gaming",
+  "Headphones"
+];
+
+function Products({add,initialCategory='All',products,setProducts,checkIsWishlisted,onToggleWishlist,token}){
+  const [q, setQ] = useState(() => {
+    try {
+      return new URLSearchParams(window.location.search).get('search') || "";
+    } catch(e) { return ""; }
+  });
+  const [cat, setCat] = useState(initialCategory);
+  const [sort, setSort] = useState("Featured");
+  const [page, setPage] = useState(1);
   const perPage=50;
+
   useEffect(()=>setCat(initialCategory),[initialCategory]);
-  const cats=useMemo(()=>["All",...new Set(products.map(p=>p.category))],[products]);
-  const list=useMemo(()=>{let x=products.filter(p=>(cat==="All"||p.category===cat)&&`${p.name} ${p.description}`.toLowerCase().includes(q.toLowerCase()));if(sort==="Price: Low to High")x.sort((a,b)=>a.price-b.price);if(sort==="Price: High to Low")x.sort((a,b)=>b.price-a.price);if(sort==="Rating")x.sort((a,b)=>b.rating-a.rating);return x},[products,q,cat,sort]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const searchCat = new URLSearchParams(window.location.search).get('category') || 'All';
+      const searchQ = new URLSearchParams(window.location.search).get('search') || '';
+      setCat(searchCat);
+      setQ(searchQ);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const handleCategoryChange = (newCat) => {
+    setCat(newCat);
+    const params = new URLSearchParams(window.location.search);
+    if (newCat === "All") {
+      params.delete("category");
+    } else {
+      params.set("category", newCat);
+    }
+    const newQuery = params.toString() ? `?${params.toString()}` : "";
+    window.history.replaceState({}, "", `${window.location.pathname}${newQuery}`);
+  };
+
+  const cats=useMemo(()=>{
+    const productCats=Array.from(new Set(products.map(p=>p.category).filter(Boolean)));
+    const merged=[...REQUIRED_CATEGORIES];
+    for(const c of productCats){
+      if(!merged.some(m=>m.toLowerCase()===c.toLowerCase())){
+        merged.push(c);
+      }
+    }
+    return merged;
+  },[products]);
+
+  const list=useMemo(()=>{
+    let x=products.filter(p=>(cat==="All"||p.category?.toLowerCase()===cat.toLowerCase()||p.category===cat)&&`${p.name} ${p.description}`.toLowerCase().includes(q.toLowerCase()));
+    if(sort==="Price: Low to High")x.sort((a,b)=>a.price-b.price);
+    if(sort==="Price: High to Low")x.sort((a,b)=>b.price-a.price);
+    if(sort==="Rating")x.sort((a,b)=>b.rating-a.rating);
+    return x;
+  },[products,q,cat,sort]);
+
   useEffect(()=>setPage(1),[q,cat,sort]);
   const total=Math.max(1,Math.ceil(list.length/perPage));
   const visible=list.slice((page-1)*perPage,page*perPage);
-  const openProduct=p=>goPath('/products/'+encodeURIComponent(p._id));
+  const openProduct = (p) => {
+    recordProductView(p, token);
+    goPath('/products/' + encodeURIComponent(p._id || p.productId));
+  };
+
   return <main className="page" id="products">
     <div className="title"><h1>{cat==='All'?'All Products':cat}</h1><p>Discover the best deals on latest electronics</p></div>
-    <div className="filters"><div className="filter"><Search size={18}/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search products..."/></div><div className="select"><select value={cat} onChange={e=>setCat(e.target.value)}>{cats.map(c=><option key={c}>{c}</option>)}</select><ChevronDown size={16}/></div><div className="sort"><SlidersHorizontal size={16}/>Sort by:<select value={sort} onChange={e=>setSort(e.target.value)}><option>Featured</option><option>Price: Low to High</option><option>Price: High to Low</option><option>Rating</option></select></div></div>
+    <div className="filters">
+      <div className="filter">
+        <Search size={18}/>
+        <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search products..."/>
+      </div>
+      <CategoryDropdown
+        value={cat}
+        onChange={handleCategoryChange}
+        categories={cats}
+      />
+      <div className="sort">
+        <SlidersHorizontal size={16}/>Sort by:
+        <select value={sort} onChange={e=>setSort(e.target.value)}>
+          <option>Featured</option>
+          <option>Price: Low to High</option>
+          <option>Price: High to Low</option>
+          <option>Rating</option>
+        </select>
+      </div>
+    </div>
     <div className="resultCount">Showing {list.length?(page-1)*perPage+1:0}-{Math.min(page*perPage,list.length)} of {list.length} products</div>
-    <div className="grid">{visible.map(p=><Card key={p._id} p={p} add={add} onOpen={openProduct} isWishlisted={checkIsWishlisted ? checkIsWishlisted(p._id) : false} onToggleWishlist={onToggleWishlist}/>)}</div>
+    <div className="grid">{visible.map(p=><Card key={p._id || p.productId} p={p} add={add} onOpen={openProduct} isWishlisted={checkIsWishlisted ? checkIsWishlisted(p._id || p.productId) : false} onToggleWishlist={onToggleWishlist}/>)}</div>
     <div className="pages"><button disabled={page===1} onClick={()=>{setPage(page-1);window.scrollTo({top:0,behavior:'smooth'})}}>‹</button>{Array.from({length:total},(_,i)=>i+1).map(n=><button key={n} className={page===n?'on':''} onClick={()=>{setPage(n);window.scrollTo({top:0,behavior:'smooth'})}}>{n}</button>)}<button disabled={page===total} onClick={()=>{setPage(page+1);window.scrollTo({top:0,behavior:'smooth'})}}>›</button></div>
   </main>
 }
@@ -1040,28 +1431,245 @@ function Toast({ toast, onClose }){
   );
 }
 
-function Home({add, products = [], checkIsWishlisted, onToggleWishlist}){
-  const featured = (products.length ? products : demo).slice(0, 4);
-  return <>
-    {/* Modern Hero Banner Image Carousel / Slider */}
-    <HeroSlider onNavigate={goPath} />
-   <section className="featureStrip"><div><span>01</span><h2>Mobiles</h2><p>Latest smartphones with powerful performance.</p><button onClick={()=>goPath('/products?category=Mobiles')}>Shop Now →</button><img src={demo[4].image} alt="Mobiles"/></div><div><span>02</span><h2>Headphones</h2><p>Feel the sound like never before.</p><button onClick={()=>goPath('/products?category=Headphones')}>Shop Now →</button><img src={demo[2].image} alt="Headphones"/></div><div><span>03</span><h2>Laptops</h2><p>Power for your big ideas.</p><button onClick={()=>goPath('/products?category=Laptops')}>Shop Now →</button><img src={demo[1].image} alt="Laptop"/></div><div><span>04</span><h2>Accessories</h2><p>Smart add-ons. Big difference.</p><button onClick={()=>goPath('/products?category=Accessories')}>Shop Now →</button><img src={demo[3].image} alt="Accessories"/></div></section>
-   <section className="page" style={{ margin: '40px auto 0' }}>
-     <div className="title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '18px' }}>
-       <div>
-         <h1>Trending Electronics</h1>
-         <p>Handpicked bestsellers with special discounts</p>
-       </div>
-       <button className="primaryBtn" onClick={()=>goPath('/products')}>View All Products →</button>
-     </div>
-     <div className="grid">
-       {featured.map(p=>(
-         <Card key={p._id} p={p} add={add} onOpen={x=>goPath('/products/'+encodeURIComponent(x._id))} isWishlisted={checkIsWishlisted ? checkIsWishlisted(p._id) : false} onToggleWishlist={onToggleWishlist}/>
-       ))}
-     </div>
-   </section>
-   <section className="homeIntro"><span>TECHZONE FOR EVERYONE</span><h2>Everything you need for your digital life.</h2><p>Shop trusted electronics, compare products, add to cart and move from browsing to checkout without leaving the experience.</p><button className="primaryBtn" onClick={()=>goPath('/products')}>Explore Products <ArrowRight size={17}/></button></section>
-  </>
+const HOME_CATEGORIES = [
+  { name: "Mobiles", image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=300&q=80" },
+  { name: "Laptops", image: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=300&q=80" },
+  { name: "Headphones", image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=300&q=80" },
+  { name: "Smartwatches", image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=300&q=80" },
+  { name: "Earbuds", image: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&w=300&q=80" },
+  { name: "Accessories", image: "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?auto=format&fit=crop&w=300&q=80" },
+  { name: "Gaming", image: "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?auto=format&fit=crop&w=300&q=80" },
+  { name: "Monitors", image: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&w=300&q=80" }
+];
+
+function Home({add, products = [], checkIsWishlisted, onToggleWishlist, token, showToast}){
+  const [bestsellerTab, setBestsellerTab] = useState("All");
+
+  const allProducts = useMemo(() => products.length ? products : demo, [products]);
+
+  const openProduct = (p) => {
+    recordProductView(p, token);
+    goPath('/products/' + encodeURIComponent(p._id || p.productId));
+  };
+
+  // Best Sellers (sorted by rating and reviews)
+  const bestSellers = useMemo(() => {
+    let list = [...allProducts].sort((a, b) => (b.rating || 0) - (a.rating || 0) || (b.reviews || 0) - (a.reviews || 0));
+    if (bestsellerTab === "Mobiles") list = list.filter(p => p.category?.toLowerCase() === "mobiles");
+    else if (bestsellerTab === "Laptops") list = list.filter(p => p.category?.toLowerCase() === "laptops");
+    else if (bestsellerTab === "Audio") list = list.filter(p => ["headphones", "earbuds"].includes(p.category?.toLowerCase()));
+    else if (bestsellerTab === "Wearables") list = list.filter(p => p.category?.toLowerCase() === "smartwatches");
+    return list.slice(0, 8);
+  }, [allProducts, bestsellerTab]);
+
+  // Recently Added (new releases)
+  const recentlyAdded = useMemo(() => {
+    return allProducts.slice(0, 4);
+  }, [allProducts]);
+
+  // Recommended for You (curated mix across diverse categories)
+  const recommendedForYou = useMemo(() => {
+    const cats = ['Mobiles', 'Laptops', 'Headphones', 'Smartwatches'];
+    const picks = [];
+    cats.forEach(c => {
+      const match = allProducts.find(p => p.category?.toLowerCase() === c.toLowerCase() && !picks.includes(p));
+      if (match) picks.push(match);
+    });
+    return picks.length >= 4 ? picks : allProducts.slice(4, 8);
+  }, [allProducts]);
+
+  return (
+    <>
+      {/* 1. Main Hero Banner */}
+      <HeroSlider onNavigate={goPath} />
+
+      {/* 2. Exclusive Deals & Featured Picks Carousel Section */}
+      <FeaturedPromotionsCarousel onNavigate={goPath} />
+
+      {/* 2. Well-Designed Category Navigation Section with Real Images */}
+      <section className="home-category-section" aria-label="Shop by category">
+        <div className="category-nav-header">
+          <div>
+            <h2>Shop by Category</h2>
+            <p>Explore genuine electronics backed by official brand warranty</p>
+          </div>
+          <button className="section-view-all-link" onClick={() => goPath('/products')}>
+            View All Categories →
+          </button>
+        </div>
+
+        <div className="category-nav-grid">
+          {HOME_CATEGORIES.map((cat) => {
+            const count = allProducts.filter(p => p.category?.toLowerCase() === cat.name.toLowerCase()).length;
+            return (
+              <div
+                key={cat.name}
+                className="category-nav-card"
+                onClick={() => goPath('/products?category=' + encodeURIComponent(cat.name))}
+                id={`home-cat-card-${cat.name.toLowerCase()}`}
+              >
+                <div className="cat-card-img">
+                  <img src={cat.image} alt={cat.name} loading="lazy" />
+                </div>
+                <div className="cat-card-name">{cat.name}</div>
+                <div className="cat-card-count">{count > 0 ? `${count} Products` : "Explore"}</div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* 3. Best Sellers Section (Customers start shopping immediately) */}
+      <section className="page" style={{ margin: '48px auto 0' }}>
+        <div className="section-header-row">
+          <div className="section-header-title-wrap">
+            <h2>Best Sellers in Tech</h2>
+            <p>Customer favorites with verified 4.0+ star ratings and manufacturer warranty</p>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            {['All', 'Mobiles', 'Laptops', 'Audio', 'Wearables'].map(tab => (
+              <button
+                key={tab}
+                type="button"
+                className={`section-tab-pill ${bestsellerTab === tab ? 'active' : ''}`}
+                onClick={() => setBestsellerTab(tab)}
+              >
+                {tab}
+              </button>
+            ))}
+            <button className="section-view-all-link" onClick={() => goPath('/products')}>
+              View All ({allProducts.length}) →
+            </button>
+          </div>
+        </div>
+
+        <div className="grid">
+          {bestSellers.map(p => (
+            <Card
+              key={p._id || p.productId}
+              p={p}
+              add={add}
+              onOpen={openProduct}
+              isWishlisted={checkIsWishlisted ? checkIsWishlisted(p._id || p.productId) : false}
+              onToggleWishlist={onToggleWishlist}
+            />
+          ))}
+        </div>
+      </section>
+
+      {/* 4. Live Flash Sale Section with Countdown Timer and Deals Carousel */}
+      <FlashSaleSection
+        onNavigate={goPath}
+        add={add}
+        checkIsWishlisted={checkIsWishlisted}
+        onToggleWishlist={onToggleWishlist}
+      />
+
+      {/* 5. Recently Added / New Releases Section */}
+      <section className="page" style={{ margin: '40px auto 0' }}>
+        <div className="section-header-row">
+          <div className="section-header-title-wrap">
+            <h2>New Releases & Recent Additions</h2>
+            <p>Fresh inventory and upgraded models straight from official suppliers</p>
+          </div>
+          <button className="section-view-all-link" onClick={() => goPath('/products')}>
+            Browse Full Catalog →
+          </button>
+        </div>
+        <div className="grid">
+          {recentlyAdded.map(p => (
+            <Card
+              key={p._id || p.productId}
+              p={p}
+              add={add}
+              onOpen={openProduct}
+              isWishlisted={checkIsWishlisted ? checkIsWishlisted(p._id || p.productId) : false}
+              onToggleWishlist={onToggleWishlist}
+            />
+          ))}
+        </div>
+      </section>
+
+      {/* 6. Recommended for You Section */}
+      <section className="page" style={{ margin: '40px auto 0' }}>
+        <div className="section-header-row">
+          <div className="section-header-title-wrap">
+            <h2>Recommended for You</h2>
+            <p>Handpicked electronics tailored for everyday productivity and entertainment</p>
+          </div>
+          <button className="section-view-all-link" onClick={() => goPath('/products')}>
+            See More Recommendations →
+          </button>
+        </div>
+        <div className="grid">
+          {recommendedForYou.map(p => (
+            <Card
+              key={p._id || p.productId}
+              p={p}
+              add={add}
+              onOpen={openProduct}
+              isWishlisted={checkIsWishlisted ? checkIsWishlisted(p._id || p.productId) : false}
+              onToggleWishlist={onToggleWishlist}
+            />
+          ))}
+        </div>
+      </section>
+
+      {/* 7. Interactive Recently Viewed Products Section */}
+      <section className="page" style={{ margin: '30px auto 0' }}>
+        <RecentlyViewedSection
+          isHomePage={true}
+          add={add}
+          onOpen={openProduct}
+          checkIsWishlisted={checkIsWishlisted}
+          onToggleWishlist={onToggleWishlist}
+          token={token}
+          showToast={showToast}
+          onNavigate={goPath}
+        />
+      </section>
+
+      {/* 8. Retail Trust & Customer Guarantees Strip */}
+      <section className="retail-guarantee-strip">
+        <div className="guarantee-item">
+          <div className="guarantee-icon-box">
+            <ShieldCheck size={22} />
+          </div>
+          <div className="guarantee-content">
+            <h3>100% Genuine Products</h3>
+            <p>Direct from authorized manufacturers with genuine brand guarantees.</p>
+          </div>
+        </div>
+        <div className="guarantee-item">
+          <div className="guarantee-icon-box">
+            <Truck size={22} />
+          </div>
+          <div className="guarantee-content">
+            <h3>Free Express Delivery</h3>
+            <p>Complimentary priority shipping across India on orders over ₹999.</p>
+          </div>
+        </div>
+        <div className="guarantee-item">
+          <div className="guarantee-icon-box">
+            <RotateCcw size={22} />
+          </div>
+          <div className="guarantee-content">
+            <h3>7-Day Easy Returns</h3>
+            <p>Hassle-free doorstep pickup with instant replacement or full refund.</p>
+          </div>
+        </div>
+        <div className="guarantee-item">
+          <div className="guarantee-icon-box">
+            <Zap size={22} />
+          </div>
+          <div className="guarantee-content">
+            <h3>Official Brand Warranty</h3>
+            <p>Comprehensive service coverage with nationwide service center support.</p>
+          </div>
+        </div>
+      </section>
+    </>
+  );
 }
 
 function Footer(){
@@ -1074,14 +1682,18 @@ function Footer(){
       <div>
         <h4>Shop</h4>
         <button onClick={()=>goPath('/products')}>All Products</button>
+        <button onClick={()=>goPath('/recently-viewed')}>Recently Viewed</button>
+        <button onClick={()=>goPath('/flash-sale')} style={{ color: '#f87171', fontWeight: 'bold' }}>⚡ Flash Sale Deals</button>
+        <button onClick={()=>goPath('/my-account')}>My Account</button>
+        <button onClick={()=>goPath('/my-orders')}>Order History</button>
+        <button onClick={()=>goPath('/my-returns')} style={{ color: '#fbbf24', fontWeight: '500' }}>Returns & Refunds</button>
         <button onClick={()=>goPath('/wishlist')}>My Wishlist</button>
         <button onClick={()=>goPath('/cart')}>Shopping Cart</button>
       </div>
       <div>
-        <h4>Admin & Explore</h4>
-        <button onClick={()=>goPath('/admin')} style={{ color: '#38bdf8', fontWeight: 'bold' }}>⚡ Admin Console</button>
-        <button onClick={()=>goPath('/features')}>Features</button>
-        <button onClick={()=>goPath('/enterprise')}>Enterprise</button>
+        <h4>Explore TechZone</h4>
+        <button onClick={()=>goPath('/features')}>Platform Features</button>
+        <button onClick={()=>goPath('/enterprise')}>Enterprise Solutions</button>
       </div>
       <div>
         <h4>Support</h4>
@@ -1101,6 +1713,25 @@ function App(){
     } catch(e) { return []; }
   });
   const[route,setRoute]=useState(pathKey());
+  const[currentPath,setCurrentPath]=useState(window.location.pathname);
+
+  // Synchronize customer theme vs. Admin/SuperAdmin console isolation
+  useEffect(() => {
+    if (route === 'admin' || route === 'superadmin' || currentPath.startsWith('/admin') || currentPath.startsWith('/superadmin')) {
+      document.documentElement.removeAttribute("data-theme");
+      document.body.classList.remove("tz-dark-mode", "tz-light-mode");
+    } else {
+      const saved = localStorage.getItem("techzone_theme") || "light";
+      document.documentElement.setAttribute("data-theme", saved);
+      if (saved === "dark") {
+        document.body.classList.add("tz-dark-mode");
+        document.body.classList.remove("tz-light-mode");
+      } else {
+        document.body.classList.add("tz-light-mode");
+        document.body.classList.remove("tz-dark-mode");
+      }
+    }
+  }, [route, currentPath]);
   const[products,setProducts]=useState(()=>{
     try{
       const s=localStorage.getItem("techzone_products");
@@ -1150,8 +1781,74 @@ function App(){
     return () => clearTimeout(timer);
   }, [toast]);
 
+  // Authenticated User & Token state
+  const [token, setToken] = useState(() => {
+    try {
+      return localStorage.getItem("techzone_token") || null;
+    } catch (e) {
+      return null;
+    }
+  });
+
+  const [user, setUser] = useState(() => {
+    try {
+      const u = localStorage.getItem("techzone_user");
+      return u ? JSON.parse(u) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  // Sync / validate user profile on mount if token exists
+  useEffect(() => {
+    if (!token) return;
+    axios
+      .get("http://localhost:5000/api/users/profile", {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then((res) => {
+        if (res.data?.success && res.data.user) {
+          setUser(res.data.user);
+          localStorage.setItem("techzone_user", JSON.stringify(res.data.user));
+        }
+      })
+      .catch((err) => {
+        if (err.response?.status === 401) {
+          setUser(null);
+          setToken(null);
+          localStorage.removeItem("techzone_token");
+          localStorage.removeItem("techzone_user");
+        }
+      });
+  }, [token]);
+
+  const handleAuthSuccess = (authenticatedUser, authToken) => {
+    setUser(authenticatedUser);
+    setToken(authToken);
+    showToast("Welcome to TechZone", `Signed in as ${authenticatedUser.name}`, "cart-add", "👤");
+    syncHistoryOnLogin(authToken);
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    setToken(null);
+    try {
+      localStorage.removeItem("techzone_token");
+      localStorage.removeItem("techzone_user");
+    } catch (e) {}
+    showToast("Signed Out", "You have been logged out of TechZone.", "wishlist-remove", "🚪");
+    if (route === "my-account" || route === "my-orders" || route === "order-detail" || route === "my-returns" || route === "return-detail") {
+      goPath("/");
+    }
+  };
+
   useEffect(()=>{
-    const onPop=()=>setRoute(pathKey());
+    const onPop=()=>{
+      setRoute(pathKey());
+      setCurrentPath(window.location.pathname);
+    };
     window.addEventListener('popstate',onPop);
     axios.get('http://localhost:5000/api/products').then(r=>{
       if(r.data?.length){
@@ -1292,23 +1989,84 @@ function App(){
     });
   }, []);
 
-  if(route==='admin'){
-    return <AdminPanel
-      products={products}
-      setProducts={setProducts}
-      orders={orders}
-      setOrders={setOrders}
-      onBackToStore={()=>goPath('/')}
-      onViewProduct={p=>goPath('/products/'+encodeURIComponent(p._id))}
-    />;
+  if(route==='superadmin'){
+    return (
+      <SuperAdminApp
+        currentPath={currentPath}
+        onNavigate={goPath}
+        onBackToStore={()=>goPath('/')}
+      />
+    );
   }
 
-  const currentId=decodeURIComponent(window.location.pathname.split('/').pop()||'');
-  const selected=products.find(p=>String(p._id)===currentId);
+  if(route==='admin'){
+    return (
+      <AdminProtectedRoute
+        onBackToStore={()=>goPath('/')}
+        currentPath={currentPath}
+      >
+        {({ adminUser, adminToken, onAdminLogout }) => (
+          <AdminPanel
+            products={products}
+            setProducts={setProducts}
+            orders={orders}
+            setOrders={setOrders}
+            user={user}
+            token={token}
+            adminUser={adminUser}
+            adminToken={adminToken}
+            onAdminLogout={onAdminLogout}
+            onLogout={onAdminLogout}
+            onBackToStore={()=>goPath('/')}
+            onViewProduct={p=>goPath('/products/'+encodeURIComponent(p._id || p.productId))}
+          />
+        )}
+      </AdminProtectedRoute>
+    );
+  }
+
+  const currentId = decodeURIComponent(
+    window.location.pathname.startsWith('/products/')
+      ? window.location.pathname.replace(/^\/products\//, '').split('/')[0]
+      : (window.location.pathname.split('/').pop() || '')
+  );
+  const selected = products.find(p => String(p._id) === String(currentId) || String(p.productId) === String(currentId));
   let content;
-  if(route==='home')content=<Home add={add} products={products} checkIsWishlisted={checkIsWishlisted} onToggleWishlist={toggleWishlist}/>;
-  else if(route==='products')content=<Products add={add} products={products} setProducts={setProducts} initialCategory={new URLSearchParams(window.location.search).get('category')||'All'} checkIsWishlisted={checkIsWishlisted} onToggleWishlist={toggleWishlist}/>;
-  else if(route==='product-detail')content=<ProductDetail product={selected} products={products} add={add} isWishlisted={selected ? checkIsWishlisted(selected._id) : false} onToggleWishlist={toggleWishlist} checkIsWishlisted={checkIsWishlisted} userId={userId} showToast={showToast} onProductRatingUpdate={handleProductRatingUpdate}/>;
+  if(route==='home')content=<Home add={add} products={products} checkIsWishlisted={checkIsWishlisted} onToggleWishlist={toggleWishlist} token={token} showToast={showToast}/>;
+  else if(route==='flash-sale')content=<FlashSalePage onNavigate={goPath} add={add} checkIsWishlisted={checkIsWishlisted} onToggleWishlist={toggleWishlist} showToast={showToast}/>;
+  else if(route==='products')content=<Products add={add} products={products} setProducts={setProducts} initialCategory={new URLSearchParams(window.location.search).get('category')||'All'} checkIsWishlisted={checkIsWishlisted} onToggleWishlist={toggleWishlist} token={token}/>;
+  else if(route==='recently-viewed')content=(
+    <main className="page" style={{ minHeight: '650px', margin: '30px auto' }}>
+      <RecentlyViewedSection
+        add={add}
+        onOpen={p=>{
+          recordProductView(p, token);
+          goPath('/products/'+encodeURIComponent(p._id || p.productId));
+        }}
+        checkIsWishlisted={checkIsWishlisted}
+        onToggleWishlist={toggleWishlist}
+        token={token}
+        showToast={showToast}
+        onNavigate={goPath}
+      />
+    </main>
+  );
+  else if(route==='product-detail')content=(
+    <ProductDetail
+      key={currentId || selected?._id || 'product-detail'}
+      productId={currentId}
+      product={selected}
+      products={products}
+      add={add}
+      isWishlisted={selected ? checkIsWishlisted(selected._id || selected.productId) : false}
+      onToggleWishlist={toggleWishlist}
+      checkIsWishlisted={checkIsWishlisted}
+      userId={userId}
+      token={token}
+      showToast={showToast}
+      onProductRatingUpdate={handleProductRatingUpdate}
+    />
+  );
   else if(route==='wishlist')content=<WishlistPage wishlist={wishlist} onRemove={removeFromWishlist} onAddToCart={addWishlistItemToCart} onClearWishlist={clearWishlist} onAddAllToCart={addAllWishlistToCart} onOpenProduct={p=>goPath('/products/'+encodeURIComponent(p.productId || p._id))} onNavigate={goPath}/>;
   else if(route==='cart')content=<CartPage items={cart} onRemove={remove} onAdd={add} onCheckout={handleCheckout}/>;
   else if(route==='checkout')content=<CheckoutPage cartItems={cart} onClearCart={()=>{setCart([]);try{localStorage.setItem("techzone_cart",JSON.stringify([]));}catch(e){}}} onNavigate={goPath} showToast={showToast} userId={userId}/>;
@@ -1316,14 +2074,49 @@ function App(){
     const orderId=decodeURIComponent(window.location.pathname.replace('/order-success/',''));
     content=<OrderSuccessPage orderId={orderId} onNavigate={goPath} showToast={showToast}/>;
   }
+  else if(route==='my-account'){
+    content=<MyAccountPage user={user} token={token} onUpdateUser={setUser} onLogout={handleLogout} onNavigate={goPath} onOpenAuthModal={()=>setIsAuthModalOpen(true)} showToast={showToast}/>;
+  }
+  else if(route==='my-orders'){
+    content=<OrderHistoryPage user={user} token={token} onNavigate={goPath} onOpenAuthModal={()=>setIsAuthModalOpen(true)} showToast={showToast}/>;
+  }
+  else if(route==='order-detail'){
+    const orderId=decodeURIComponent(window.location.pathname.replace('/my-orders/',''));
+    content=<OrderDetailsPage orderId={orderId} user={user} token={token} onNavigate={goPath} onOpenAuthModal={()=>setIsAuthModalOpen(true)} showToast={showToast}/>;
+  }
+  else if(route==='my-returns'){
+    content=<MyReturnsPage user={user} token={token} onNavigate={goPath} onOpenAuthModal={()=>setIsAuthModalOpen(true)} showToast={showToast}/>;
+  }
+  else if(route==='return-detail'){
+    const returnId=decodeURIComponent(window.location.pathname.replace('/my-returns/',''));
+    content=<ReturnDetailsPage returnId={returnId} user={user} token={token} onNavigate={goPath} onOpenAuthModal={()=>setIsAuthModalOpen(true)} showToast={showToast}/>;
+  }
   else content=<InfoPage type={route}/>;
 
   return <>
-    <Header count={cart.reduce((s,x)=>s+x.qty,0)} wishlistCount={wishlist.length} currentRoute={route}/>
+    <Header
+      count={cart.reduce((s,x)=>s+x.qty,0)}
+      wishlistCount={wishlist.length}
+      currentRoute={route}
+      user={user}
+      onLogout={handleLogout}
+      onOpenAuthModal={()=>setIsAuthModalOpen(true)}
+    />
     {content}
     <Footer/>
     <Toast toast={toast} onClose={()=>setToast(null)}/>
+    <AuthModal
+      isOpen={isAuthModalOpen}
+      onClose={()=>setIsAuthModalOpen(false)}
+      onAuthSuccess={handleAuthSuccess}
+    />
   </>
 }
-createRoot(document.getElementById("root")).render(<BrowserRouter><App/></BrowserRouter>);
+createRoot(document.getElementById("root")).render(
+  <BrowserRouter>
+    <ThemeProvider>
+      <App />
+    </ThemeProvider>
+  </BrowserRouter>
+);
 

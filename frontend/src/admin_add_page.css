@@ -15,7 +15,7 @@
 }
 
 .breadcrumb-bar span.active {
-  color: #38bdf8;
+  color: #B794F6;
   font-weight: 600;
 }
 
@@ -80,9 +80,9 @@
   gap: 8px;
   padding: 10px 14px;
   border-radius: 8px;
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.25);
-  color: #34d399;
+  background: rgba(183, 148, 246, 0.12);
+  border: 1px solid rgba(183, 148, 246, 0.25);
+  color: #D8C4FF;
   font-size: 13px;
   font-weight: 600;
 }
@@ -110,9 +110,9 @@
   gap: 6px;
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(56, 189, 248, 0.15);
-  border: 1px solid rgba(56, 189, 248, 0.3);
-  color: #38bdf8;
+  background: rgba(183, 148, 246, 0.15);
+  border: 1px solid rgba(183, 148, 246, 0.3);
+  color: #B794F6;
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
@@ -125,19 +125,19 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #38bdf8;
-  box-shadow: 0 0 8px #38bdf8;
+  background: #B794F6;
+  box-shadow: 0 0 8px #B794F6;
 }
 
 /* Mock Storefront Card for preview */
 .mock-store-card {
   position: relative;
-  background: #292f33;
-  border: 1px solid #3d454c;
-  border-radius: 10px;
+  background: #15151D;
+  border: 1px solid #262635;
+  border-radius: 14px;
   padding: 14px 16px 16px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-  color: #edf0f3;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  color: #FFFFFF;
   transition: transform 0.2s;
 }
 
@@ -145,12 +145,12 @@
   position: absolute;
   left: 14px;
   top: 14px;
-  background: #10a957;
-  color: #fff;
+  background: #B794F6;
+  color: #0B0B10;
   font-size: 11px;
   font-weight: 700;
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: 6px;
   z-index: 2;
 }
 
@@ -160,8 +160,9 @@
   align-items: center;
   justify-content: center;
   margin-top: 10px;
-  background: #23282c;
-  border-radius: 8px;
+  background: #0E0E15;
+  border: 1px solid #262635;
+  border-radius: 10px;
   overflow: hidden;
 }
 
@@ -175,14 +176,14 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: #252a2e;
-  border: 1px solid #414950;
-  border-radius: 5px;
-  padding: 3px 6px;
+  background: #0E0E15;
+  border: 1px solid #262635;
+  border-radius: 6px;
+  padding: 3px 8px;
   margin-top: 10px;
   font-size: 12px;
   font-weight: 700;
-  color: #fff;
+  color: #fbbf24;
 }
 
 .mock-store-card h3 {
@@ -191,12 +192,12 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #fff;
+  color: #FFFFFF;
 }
 
 .mock-store-card p {
   font-size: 12px;
-  color: #99a5b0;
+  color: #B8B8C7;
   margin: 0 0 10px;
   white-space: nowrap;
   overflow: hidden;
@@ -212,51 +213,57 @@
 
 .mock-store-card .price strong {
   font-size: 18px;
-  color: #10b981;
+  color: #FFFFFF;
+  font-weight: 800;
 }
 
 .mock-store-card .price del {
   font-size: 12px;
-  color: #7e8993;
+  color: #8E8EA0;
 }
 
 .mock-store-card .price b {
   font-size: 11px;
-  color: #10b981;
+  color: #B794F6;
 }
 
 .mock-store-card .delivery {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #9ba6b0;
+  color: #8E8EA0;
   font-size: 11px;
   margin: 8px 0;
 }
 
 .mock-store-card .delivery span {
   margin-left: auto;
-  background: #193b2b;
-  border: 1px solid #2d6848;
-  color: #69d89b;
+  background: rgba(183, 148, 246, 0.12);
+  border: 1px solid rgba(183, 148, 246, 0.3);
+  color: #D8C4FF;
   padding: 3px 6px;
   border-radius: 4px;
 }
 
 .mock-store-card .add {
   width: 100%;
-  height: 34px;
+  height: 38px;
   margin-top: 10px;
   border: 0;
-  border-radius: 6px;
-  background: #1677f2;
-  color: #fff;
+  border-radius: 8px;
+  background: #B794F6;
+  color: #0B0B10;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 7px;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 13px;
+  transition: all 0.2s ease;
+}
+
+.mock-store-card .add:hover {
+  background: #D8C4FF;
 }
 
 .action-publish-row {

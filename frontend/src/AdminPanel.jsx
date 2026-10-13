@@ -38,11 +38,26 @@ import {
   DollarSign,
   Image as ImageIcon,
   MessageSquare,
-  ThumbsUp
+  ThumbsUp,
+  Zap,
+  RotateCcw,
+  Smartphone,
+  Laptop,
+  Headphones,
+  Watch,
+  Sparkles,
+  Monitor,
+  Gamepad2,
+  FolderPlus,
+  ArrowUpDown,
+  LogOut,
+  ShieldAlert
 } from "lucide-react";
 import axios from "axios";
 import "./admin.css";
 import "./admin_add_page.css";
+import AdminFlashSalesTab from "./AdminFlashSalesTab";
+import AdminReturnsTab from "./AdminReturnsTab";
 
 // Preset high quality tech product images
 const PRESET_IMAGES = [
@@ -62,8 +77,46 @@ export default function AdminPanel({
   orders,
   setOrders,
   onBackToStore,
-  onViewProduct
+  onViewProduct,
+  token,
+  user,
+  adminUser,
+  adminToken,
+  onAdminLogout,
+  onLogout
 }) {
+  const effectiveToken = adminToken || token || localStorage.getItem("techzone_admin_token") || "";
+  const effectiveAdmin = adminUser || (() => {
+    try {
+      const u = localStorage.getItem("techzone_admin_user");
+      return u ? JSON.parse(u) : null;
+    } catch(e) { return null; }
+  })() || user;
+
+  const hasPerm = (permKey) => {
+    if (!effectiveAdmin) return true;
+    if (effectiveAdmin.role === "superadmin" || effectiveAdmin.isSuperAdmin) return true;
+    const perms = Array.isArray(effectiveAdmin.permissions) ? effectiveAdmin.permissions : [];
+    if (perms.length === 0 && effectiveAdmin.role === "admin") {
+      // Default fallback if no specific permissions recorded
+      return true;
+    }
+    if (perms.includes("*")) return true;
+    return perms.includes(permKey);
+  };
+
+  const getAdminConfig = (extra = {}) => {
+    const headers = {
+      "x-admin-key": "techzone-admin-secret",
+      ...(effectiveToken ? { Authorization: `Bearer ${effectiveToken}` } : {}),
+      ...(extra.headers || {})
+    };
+    return {
+      ...extra,
+      headers,
+      withCredentials: true
+    };
+  };
   // Determine initial tab based on current URL path
   const getInitialTab = () => {
     const p = window.location.pathname;
@@ -71,6 +124,8 @@ export default function AdminPanel({
     if (p === "/admin/products") return "products";
     if (p === "/admin/orders") return "orders";
     if (p === "/admin/reviews") return "reviews";
+    if (p === "/admin/flash-sales") return "flash-sales";
+    if (p === "/admin/returns") return "returns";
     if (p === "/admin/analytics") return "analytics";
     if (p === "/admin/customers") return "customers";
     if (p === "/admin/settings") return "settings";
@@ -79,11 +134,26 @@ export default function AdminPanel({
 
   const [activeTab, setActiveTab] = useState(getInitialTab);
   const [searchQuery, setSearchQuery] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("All");
+  const [categoryFilter, setCategoryFilter] = useState(() => {
+    try {
+      return new URLSearchParams(window.location.search).get("category") || "All";
+    } catch (e) {
+      return "All";
+    }
+  });
   const [stockFilter, setStockFilter] = useState("All");
+  const [productSort, setProductSort] = useState("newest");
   const [orderStatusFilter, setOrderStatusFilter] = useState("All");
   const [backendOnline, setBackendOnline] = useState(false);
   const [toast, setToast] = useState(null);
+  const [returnsPendingCount, setReturnsPendingCount] = useState(0);
+
+  // Category Management Modal State
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [renamingCategory, setRenamingCategory] = useState(null); // { oldName, newName }
+  const [deletingCategory, setDeletingCategory] = useState(null); // { name, count }
+  const [categoryReassignTarget, setCategoryReassignTarget] = useState("");
 
   // Admin Reviews Moderation State
   const [adminReviews, setAdminReviews] = useState([]);
@@ -160,13 +230,178 @@ export default function AdminPanel({
   useEffect(() => {
     checkBackend();
     const interval = setInterval(checkBackend, 15000);
+
+    // Fetch returns pending count for sidebar badge
+    axios
+      .get("http://localhost:5000/api/returns/admin/all", {
+        headers: { "x-admin-key": "techzone-admin-secret" }
+      })
+      .then((r) => {
+        if (r.data?.metrics) {
+          setReturnsPendingCount(r.data.metrics.pending || 0);
+        }
+      })
+      .catch(() => {});
+
     return () => clearInterval(interval);
   }, []);
 
-  // Categories list
+  // Base categories guaranteed in TechZone
+  const BASE_CATEGORIES = [
+    "Mobiles",
+    "Accessories",
+    "Laptops",
+    "Smartwatches",
+    "Earbuds",
+    "Monitors",
+    "Gaming",
+    "Headphones"
+  ];
+
+  // Dynamic unique categories combining base categories and any existing product categories
   const categories = useMemo(() => {
-    return ["All", ...new Set(products.map(p => p.category))];
+    const fromProducts = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
+    const merged = ["All", ...BASE_CATEGORIES];
+    for (const c of fromProducts) {
+      if (!merged.some(m => m.toLowerCase() === c.toLowerCase())) {
+        merged.push(c);
+      }
+    }
+    return merged;
   }, [products]);
+
+  // Dynamic category counts calculated directly from current product data
+  const categoryCounts = useMemo(() => {
+    const counts = { All: products.length };
+    products.forEach(p => {
+      if (p.category) {
+        counts[p.category] = (counts[p.category] || 0) + 1;
+      }
+    });
+    BASE_CATEGORIES.forEach(c => {
+      if (counts[c] === undefined) counts[c] = 0;
+    });
+    return counts;
+  }, [products]);
+
+  // Category Icon Resolver
+  const getCategoryIcon = (name) => {
+    const lower = (name || "").toLowerCase();
+    if (lower === "all") return Package;
+    if (lower.includes("mobile") || lower.includes("phone")) return Smartphone;
+    if (lower.includes("laptop")) return Laptop;
+    if (lower.includes("headphone")) return Headphones;
+    if (lower.includes("watch")) return Watch;
+    if (lower.includes("earbud")) return Sparkles;
+    if (lower.includes("monitor")) return Monitor;
+    if (lower.includes("gaming") || lower.includes("game")) return Gamepad2;
+    if (lower.includes("accessor")) return Layers;
+    return Tag;
+  };
+
+  // Sync category selection with URL search parameters
+  const handleCategorySelect = (cat) => {
+    setCategoryFilter(cat);
+    try {
+      const url = new URL(window.location.href);
+      if (cat === "All") {
+        url.searchParams.delete("category");
+      } else {
+        url.searchParams.set("category", cat);
+      }
+      window.history.replaceState({}, "", url.toString());
+    } catch (e) {}
+  };
+
+  // Category Management Handlers
+  const handleCreateCategory = (e) => {
+    if (e) e.preventDefault();
+    const trimmed = newCategoryName.trim();
+    if (!trimmed) {
+      showToast("Please enter a category name", "info");
+      return;
+    }
+    if (categories.some(c => c.toLowerCase() === trimmed.toLowerCase())) {
+      showToast(`Category "${trimmed}" already exists`, "info");
+      return;
+    }
+    setAddForm(prev => ({ ...prev, category: trimmed }));
+    handleCategorySelect(trimmed);
+    setNewCategoryName("");
+    setIsCategoryModalOpen(false);
+    showToast(`Category "${trimmed}" ready! You can now add products to it.`);
+  };
+
+  const handleRenameCategory = async (oldName, newName) => {
+    const trimmed = (newName || "").trim();
+    if (!trimmed || trimmed.toLowerCase() === oldName.toLowerCase()) {
+      setRenamingCategory(null);
+      return;
+    }
+    try {
+      if (backendOnline) {
+        await axios.put("http://localhost:5000/api/products/categories/rename", {
+          oldName,
+          newName: trimmed
+        }, getAdminConfig());
+      }
+      const updatedList = products.map(p =>
+        p.category && p.category.toLowerCase() === oldName.toLowerCase()
+          ? { ...p, category: trimmed }
+          : p
+      );
+      setProducts(updatedList);
+      localStorage.setItem("techzone_products", JSON.stringify(updatedList));
+      if (categoryFilter.toLowerCase() === oldName.toLowerCase()) {
+        handleCategorySelect(trimmed);
+      }
+      showToast(`Renamed "${oldName}" to "${trimmed}" successfully!`);
+    } catch (err) {
+      showToast(err.response?.data?.message || "Failed to rename category", "error");
+    }
+    setRenamingCategory(null);
+  };
+
+  const handleDeleteCategory = async (catName, reassignTo) => {
+    const count = categoryCounts[catName] || 0;
+    if (count > 0 && (!reassignTo || !reassignTo.trim())) {
+      setDeletingCategory({ name: catName, count });
+      return;
+    }
+
+    try {
+      if (backendOnline) {
+        await axios.delete(`http://localhost:5000/api/products/categories/${encodeURIComponent(catName)}`, getAdminConfig({
+          data: { reassignTo }
+        }));
+      }
+      let updatedList;
+      if (count > 0 && reassignTo) {
+        updatedList = products.map(p =>
+          p.category && p.category.toLowerCase() === catName.toLowerCase()
+            ? { ...p, category: reassignTo }
+            : p
+        );
+      } else {
+        updatedList = products.filter(
+          p => !(p.category && p.category.toLowerCase() === catName.toLowerCase())
+        );
+      }
+      setProducts(updatedList);
+      localStorage.setItem("techzone_products", JSON.stringify(updatedList));
+      if (categoryFilter.toLowerCase() === catName.toLowerCase()) {
+        handleCategorySelect("All");
+      }
+      showToast(
+        count > 0
+          ? `Reassigned ${count} products to "${reassignTo}" and removed "${catName}".`
+          : `Removed category "${catName}".`
+      );
+    } catch (err) {
+      showToast(err.response?.data?.message || "Failed to delete category", "error");
+    }
+    setDeletingCategory(null);
+  };
 
   // Calculations for KPIs
   const totalRevenue = useMemo(() => {
@@ -219,10 +454,14 @@ export default function AdminPanel({
       showToast("Please provide product name and price", "info");
       return;
     }
+    if (!addForm.category || !addForm.category.trim()) {
+      showToast("Please select a valid category", "info");
+      return;
+    }
 
     const payload = {
       name: addForm.name.trim(),
-      category: addForm.category,
+      category: addForm.category.trim(),
       price: Number(addForm.price),
       originalPrice: Number(addForm.originalPrice) || Number(addForm.price),
       discount: Number(addForm.discount) || 0,
@@ -233,26 +472,30 @@ export default function AdminPanel({
       description: addForm.description || addForm.tagline || ""
     };
 
-    const newId = "prod_" + Date.now();
-    const newProduct = { ...payload, _id: newId, createdAt: new Date().toISOString() };
-    const updatedList = [newProduct, ...products];
-    setProducts(updatedList);
-    localStorage.setItem("techzone_products", JSON.stringify(updatedList));
-
+    let createdProduct = null;
     if (backendOnline) {
       try {
-        const res = await axios.post("http://localhost:5000/api/products", payload);
+        const res = await axios.post("http://localhost:5000/api/products", payload, getAdminConfig());
         if (res.data?._id) {
-          newProduct._id = res.data._id;
-          setProducts([res.data, ...products]);
+          createdProduct = res.data;
         }
       } catch (err) {
-        console.warn("Backend create failed, saved locally", err);
+        console.warn("Backend create failed, saving locally", err);
+        showToast(err.response?.data?.message || "Backend error creating product", "error");
       }
     }
 
-    setLastCreatedProduct(newProduct);
-    showToast(`"${payload.name}" published to store successfully!`);
+    if (!createdProduct) {
+      const newId = "prod_" + Date.now();
+      createdProduct = { ...payload, _id: newId, createdAt: new Date().toISOString() };
+    }
+
+    const updatedList = [createdProduct, ...products.filter(p => p._id !== createdProduct._id)];
+    setProducts(updatedList);
+    localStorage.setItem("techzone_products", JSON.stringify(updatedList));
+
+    setLastCreatedProduct(createdProduct);
+    showToast(`"${payload.name}" published to ${payload.category} successfully!`);
   };
 
   // Quick reset add product form
@@ -299,9 +542,15 @@ export default function AdminPanel({
       showToast("Please provide product name and price", "info");
       return;
     }
+    if (!editingProduct.category || !editingProduct.category.trim()) {
+      showToast("Please select a valid category", "info");
+      return;
+    }
 
     const payload = {
       ...editingProduct,
+      name: editingProduct.name.trim(),
+      category: editingProduct.category.trim(),
       price: Number(editingProduct.price),
       originalPrice: Number(editingProduct.originalPrice) || Number(editingProduct.price),
       discount: Number(editingProduct.discount) || 0,
@@ -317,13 +566,13 @@ export default function AdminPanel({
 
     if (backendOnline) {
       try {
-        await axios.put(`http://localhost:5000/api/products/${targetId}`, payload);
+        await axios.put(`http://localhost:5000/api/products/${targetId}`, payload, getAdminConfig());
       } catch (err) {
         console.warn("Backend update failed, kept locally", err);
       }
     }
 
-    showToast(`Updated "${payload.name}" successfully!`);
+    showToast(`Updated "${payload.name}" (${payload.category}) successfully!`);
     setIsEditModalOpen(false);
   };
 
@@ -337,7 +586,7 @@ export default function AdminPanel({
 
     if (backendOnline) {
       try {
-        await axios.delete(`http://localhost:5000/api/products/${id}`);
+        await axios.delete(`http://localhost:5000/api/products/${id}`, getAdminConfig());
       } catch (err) {
         console.warn("Backend delete failed", err);
       }
@@ -354,7 +603,7 @@ export default function AdminPanel({
 
     if (backendOnline) {
       try {
-        await axios.put(`http://localhost:5000/api/products/${product._id}`, { stock: newStock });
+        await axios.put(`http://localhost:5000/api/products/${product._id}`, { stock: newStock }, getAdminConfig());
       } catch (e) {}
     }
   };
@@ -367,7 +616,7 @@ export default function AdminPanel({
 
     if (backendOnline) {
       try {
-        await axios.put(`http://localhost:5000/api/orders/${orderId}`, { status: newStatus });
+        await axios.put(`http://localhost:5000/api/orders/${orderId}`, { status: newStatus }, getAdminConfig());
       } catch (e) {}
     }
     showToast(`Order status updated to ${newStatus}`);
@@ -382,7 +631,7 @@ export default function AdminPanel({
 
     if (backendOnline) {
       try {
-        await axios.delete(`http://localhost:5000/api/orders/${orderId}`);
+        await axios.delete(`http://localhost:5000/api/orders/${orderId}`, getAdminConfig());
       } catch (e) {}
     }
     showToast("Order removed");
@@ -397,9 +646,7 @@ export default function AdminPanel({
       if (adminReviewRatingFilter !== "All") url += `&rating=${adminReviewRatingFilter}`;
       if (adminReviewProductFilter !== "All") url += `&productId=${encodeURIComponent(adminReviewProductFilter)}`;
 
-      const res = await axios.get(url, {
-        headers: { "x-admin-key": "techzone-admin-secret" }
-      });
+      const res = await axios.get(url, getAdminConfig());
 
       if (res.data?.success) {
         setAdminReviews(res.data.reviews || []);
@@ -430,9 +677,7 @@ export default function AdminPanel({
     }
 
     try {
-      const res = await axios.delete(`http://localhost:5000/api/reviews/${reviewId}`, {
-        headers: { "x-admin-key": "techzone-admin-secret" }
-      });
+      const res = await axios.delete(`http://localhost:5000/api/reviews/${reviewId}`, getAdminConfig());
       if (res.data?.success) {
         showToast("Review permanently deleted from catalog.");
         fetchAdminReviews();
@@ -449,19 +694,44 @@ export default function AdminPanel({
     }
   };
 
-  // Filtered Products
+  // Filtered and Sorted Products
   const filteredProducts = useMemo(() => {
-    return products.filter(p => {
-      const matchQuery = `${p.name} ${p.description} ${p.category}`.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchCategory = categoryFilter === "All" || p.category === categoryFilter;
+    let result = products.filter(p => {
+      // Category filter (case-insensitive)
+      const matchCategory =
+        categoryFilter === "All" ||
+        (p.category && p.category.toLowerCase() === categoryFilter.toLowerCase());
+
+      // Search query filter (matches name, description, category)
+      const query = searchQuery.trim().toLowerCase();
+      const matchQuery =
+        !query ||
+        `${p.name || ""} ${p.description || ""} ${p.category || ""}`
+          .toLowerCase()
+          .includes(query);
+
+      // Stock filter
       const stock = Number(p.stock) || 0;
       let matchStock = true;
       if (stockFilter === "In Stock") matchStock = stock > 5;
       else if (stockFilter === "Low Stock") matchStock = stock > 0 && stock <= 5;
       else if (stockFilter === "Out of Stock") matchStock = stock <= 0;
-      return matchQuery && matchCategory && matchStock;
+
+      return matchCategory && matchQuery && matchStock;
     });
-  }, [products, searchQuery, categoryFilter, stockFilter]);
+
+    // Sorting
+    return [...result].sort((a, b) => {
+      if (productSort === "price-asc") return (Number(a.price) || 0) - (Number(b.price) || 0);
+      if (productSort === "price-desc") return (Number(b.price) || 0) - (Number(a.price) || 0);
+      if (productSort === "rating") return (Number(b.rating) || 0) - (Number(a.rating) || 0);
+      if (productSort === "stock-asc") return (Number(a.stock) || 0) - (Number(b.stock) || 0);
+      if (productSort === "stock-desc") return (Number(b.stock) || 0) - (Number(a.stock) || 0);
+      if (productSort === "name-asc") return (a.name || "").localeCompare(b.name || "");
+      // Default: newest
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+    });
+  }, [products, searchQuery, categoryFilter, stockFilter, productSort]);
 
   // Filtered Orders
   const filteredOrders = useMemo(() => {
@@ -523,100 +793,178 @@ export default function AdminPanel({
         </div>
 
         <nav className="admin-nav">
-          <button
-            className={`admin-nav-item ${activeTab === "dashboard" ? "active" : ""}`}
-            onClick={() => handleTabChange("dashboard")}
-          >
-            <LayoutDashboard size={18} />
-            <span>Dashboard</span>
-          </button>
+          {hasPerm("dashboard") && (
+            <button
+              className={`admin-nav-item ${activeTab === "dashboard" ? "active" : ""}`}
+              onClick={() => handleTabChange("dashboard")}
+            >
+              <LayoutDashboard size={18} />
+              <span>Dashboard</span>
+            </button>
+          )}
 
-          <button
-            className={`admin-nav-item ${activeTab === "products" ? "active" : ""}`}
-            onClick={() => handleTabChange("products")}
-          >
-            <Package size={18} />
-            <span>Products</span>
-            <span className="badge">{products.length}</span>
-          </button>
+          {hasPerm("products") && (
+            <button
+              className={`admin-nav-item ${activeTab === "products" ? "active" : ""}`}
+              onClick={() => handleTabChange("products")}
+            >
+              <Package size={18} />
+              <span>Products</span>
+              <span className="badge">{products.length}</span>
+            </button>
+          )}
 
           {/* DEDICATED ADD PRODUCT LINK */}
-          <button
-            className={`admin-nav-item ${activeTab === "add-product" ? "active" : ""}`}
-            onClick={() => handleTabChange("add-product")}
-            style={
-              activeTab === "add-product"
-                ? {
-                    background: "linear-gradient(135deg, rgba(16, 185, 129, 0.22), rgba(6, 182, 212, 0.15))",
-                    borderColor: "rgba(16, 185, 129, 0.4)",
-                    color: "#34d399"
-                  }
-                : {}
-            }
-          >
-            <PlusCircle size={18} />
-            <span>Add Product</span>
-            <span
-              className="badge"
-              style={{
-                background: activeTab === "add-product" ? "#10b981" : "rgba(16, 185, 129, 0.2)",
-                color: activeTab === "add-product" ? "#fff" : "#34d399",
-                fontWeight: "700"
-              }}
+          {hasPerm("products_manage") && (
+            <button
+              className={`admin-nav-item ${activeTab === "add-product" ? "active" : ""}`}
+              onClick={() => handleTabChange("add-product")}
+              style={
+                activeTab === "add-product"
+                  ? {
+                      background: "linear-gradient(135deg, rgba(16, 185, 129, 0.22), rgba(6, 182, 212, 0.15))",
+                      borderColor: "rgba(16, 185, 129, 0.4)",
+                      color: "#34d399"
+                    }
+                  : {}
+              }
             >
-              + New
-            </span>
-          </button>
-
-          <button
-            className={`admin-nav-item ${activeTab === "orders" ? "active" : ""}`}
-            onClick={() => handleTabChange("orders")}
-          >
-            <ShoppingCart size={18} />
-            <span>Orders</span>
-            {pendingOrdersCount > 0 && (
-              <span className="badge" style={{ background: "#f59e0b", color: "#000" }}>
-                {pendingOrdersCount}
-              </span>
-            )}
-          </button>
-
-          <button
-            className={`admin-nav-item ${activeTab === "reviews" ? "active" : ""}`}
-            onClick={() => handleTabChange("reviews")}
-            id="admin-nav-reviews-btn"
-          >
-            <Star size={18} />
-            <span>Reviews</span>
-            {adminReviewsMetrics.totalReviews > 0 && (
+              <PlusCircle size={18} />
+              <span>Add Product</span>
               <span
                 className="badge"
                 style={{
-                  background: activeTab === "reviews" ? "#f59e0b" : "rgba(245, 158, 11, 0.2)",
-                  color: activeTab === "reviews" ? "#000" : "#fbbf24",
+                  background: activeTab === "add-product" ? "#10b981" : "rgba(16, 185, 129, 0.2)",
+                  color: activeTab === "add-product" ? "#fff" : "#34d399",
                   fontWeight: "700"
                 }}
               >
-                {adminReviewsMetrics.totalReviews}
+                + New
               </span>
-            )}
-          </button>
+            </button>
+          )}
 
-          <button
-            className={`admin-nav-item ${activeTab === "analytics" ? "active" : ""}`}
-            onClick={() => handleTabChange("analytics")}
-          >
-            <BarChart3 size={18} />
-            <span>Analytics</span>
-          </button>
+          {hasPerm("orders") && (
+            <button
+              className={`admin-nav-item ${activeTab === "orders" ? "active" : ""}`}
+              onClick={() => handleTabChange("orders")}
+            >
+              <ShoppingCart size={18} />
+              <span>Orders</span>
+              {pendingOrdersCount > 0 && (
+                <span className="badge" style={{ background: "#f59e0b", color: "#000" }}>
+                  {pendingOrdersCount}
+                </span>
+              )}
+            </button>
+          )}
 
-          <button
-            className={`admin-nav-item ${activeTab === "customers" ? "active" : ""}`}
-            onClick={() => handleTabChange("customers")}
-          >
-            <Users size={18} />
-            <span>Customers</span>
-          </button>
+          {hasPerm("reviews") && (
+            <button
+              className={`admin-nav-item ${activeTab === "reviews" ? "active" : ""}`}
+              onClick={() => handleTabChange("reviews")}
+              id="admin-nav-reviews-btn"
+            >
+              <Star size={18} />
+              <span>Reviews</span>
+              {adminReviewsMetrics.totalReviews > 0 && (
+                <span
+                  className="badge"
+                  style={{
+                    background: activeTab === "reviews" ? "#f59e0b" : "rgba(245, 158, 11, 0.2)",
+                    color: activeTab === "reviews" ? "#000" : "#fbbf24",
+                    fontWeight: "700"
+                  }}
+                >
+                  {adminReviewsMetrics.totalReviews}
+                </span>
+              )}
+            </button>
+          )}
+
+          {/* FLASH SALES MANAGEMENT TAB */}
+          {hasPerm("coupons") && (
+            <button
+              className={`admin-nav-item ${activeTab === "flash-sales" ? "active" : ""}`}
+              onClick={() => handleTabChange("flash-sales")}
+              id="admin-nav-flash-sales-btn"
+              style={
+                activeTab === "flash-sales"
+                  ? {
+                      background: "linear-gradient(135deg, rgba(239, 68, 68, 0.22), rgba(245, 158, 11, 0.15))",
+                      borderColor: "rgba(239, 68, 68, 0.4)",
+                      color: "#f87171"
+                    }
+                  : {}
+              }
+            >
+              <Zap size={18} color={activeTab === "flash-sales" ? "#ef4444" : "currentColor"} />
+              <span>Flash Sales</span>
+              <span
+                className="badge"
+                style={{
+                  background: activeTab === "flash-sales" ? "#ef4444" : "rgba(239, 68, 68, 0.2)",
+                  color: activeTab === "flash-sales" ? "#fff" : "#fca5a5",
+                  fontWeight: "700"
+                }}
+              >
+                ⚡ Deals
+              </span>
+            </button>
+          )}
+
+          {/* RETURNS & REFUNDS MANAGEMENT TAB */}
+          {hasPerm("returns") && (
+            <button
+              className={`admin-nav-item ${activeTab === "returns" ? "active" : ""}`}
+              onClick={() => handleTabChange("returns")}
+              id="admin-nav-returns-btn"
+              style={
+                activeTab === "returns"
+                  ? {
+                      background: "linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(239, 68, 68, 0.15))",
+                      borderColor: "rgba(245, 158, 11, 0.4)",
+                      color: "#fbbf24"
+                    }
+                  : {}
+              }
+            >
+              <RotateCcw size={18} color={activeTab === "returns" ? "#fbbf24" : "currentColor"} />
+              <span>Returns</span>
+              {returnsPendingCount > 0 && (
+                <span
+                  className="badge"
+                  style={{
+                    background: "#f59e0b",
+                    color: "#000",
+                    fontWeight: "700"
+                  }}
+                >
+                  {returnsPendingCount}
+                </span>
+              )}
+            </button>
+          )}
+
+          {hasPerm("reports") && (
+            <button
+              className={`admin-nav-item ${activeTab === "analytics" ? "active" : ""}`}
+              onClick={() => handleTabChange("analytics")}
+            >
+              <BarChart3 size={18} />
+              <span>Analytics</span>
+            </button>
+          )}
+
+          {hasPerm("customers") && (
+            <button
+              className={`admin-nav-item ${activeTab === "customers" ? "active" : ""}`}
+              onClick={() => handleTabChange("customers")}
+            >
+              <Users size={18} />
+              <span>Customers</span>
+            </button>
+          )}
 
           <button
             className={`admin-nav-item ${activeTab === "settings" ? "active" : ""}`}
@@ -628,16 +976,28 @@ export default function AdminPanel({
         </nav>
 
         <div className="admin-sidebar-footer">
-          <button className="admin-store-btn" onClick={onBackToStore}>
+          <button className="admin-store-btn" onClick={onBackToStore} title="Return to storefront">
             <ArrowLeft size={16} />
             <span>Back to Store</span>
           </button>
 
+          <button
+            className="admin-logout-btn"
+            onClick={onAdminLogout || onLogout}
+            id="admin-sidebar-logout-btn"
+            title="Log out of Admin Console"
+          >
+            <LogOut size={16} />
+            <span>Admin Sign Out</span>
+          </button>
+
           <div className="admin-user-pill">
-            <div className="admin-avatar">AD</div>
+            <div className="admin-avatar">
+              {((effectiveAdmin?.name || "AD").trim().slice(0, 2)).toUpperCase()}
+            </div>
             <div className="admin-user-info">
-              <span className="admin-user-name">Administrator</span>
-              <span className="admin-user-role">Super Admin</span>
+              <span className="admin-user-name">{effectiveAdmin?.name || "Administrator"}</span>
+              <span className="admin-user-role">{effectiveAdmin?.email || "admin@techzone.com"}</span>
             </div>
           </div>
         </div>
@@ -654,6 +1014,8 @@ export default function AdminPanel({
               {activeTab === "add-product" && "Add New Product"}
               {activeTab === "orders" && "Customer Orders Management"}
               {activeTab === "reviews" && "Customer Product Reviews & Moderation"}
+              {activeTab === "flash-sales" && "Flash Sales & Countdown Deals Management"}
+              {activeTab === "returns" && "Customer Returns & Refund Management"}
               {activeTab === "analytics" && "Store Performance & Analytics"}
               {activeTab === "customers" && "Customer Directory"}
               {activeTab === "settings" && "Store Settings & Tools"}
@@ -676,13 +1038,15 @@ export default function AdminPanel({
 
           <div className="admin-topbar-right">
             {activeTab !== "add-product" ? (
-              <button
-                className="admin-action-btn-primary"
-                onClick={() => handleTabChange("add-product")}
-              >
-                <Plus size={16} />
-                <span>Add New Product</span>
-              </button>
+              hasPerm("products_manage") && (
+                <button
+                  className="admin-action-btn-primary"
+                  onClick={() => handleTabChange("add-product")}
+                >
+                  <Plus size={16} />
+                  <span>Add New Product</span>
+                </button>
+              )
             ) : (
               <button
                 className="admin-btn-secondary"
@@ -697,6 +1061,32 @@ export default function AdminPanel({
 
         {/* Tab Contents */}
         <div className="admin-content">
+          {/* RBAC Restricted Module Access Banner */}
+          {((activeTab === "products" && !hasPerm("products")) ||
+            (activeTab === "add-product" && !hasPerm("products_manage")) ||
+            (activeTab === "orders" && !hasPerm("orders")) ||
+            (activeTab === "reviews" && !hasPerm("reviews")) ||
+            (activeTab === "flash-sales" && !hasPerm("coupons")) ||
+            (activeTab === "returns" && !hasPerm("returns")) ||
+            (activeTab === "analytics" && !hasPerm("reports")) ||
+            (activeTab === "customers" && !hasPerm("customers"))) && (
+            <div style={{ padding: "60px 24px", textAlign: "center", background: "rgba(239, 68, 68, 0.05)", border: "1px solid rgba(239, 68, 68, 0.2)", borderRadius: 18, margin: "24px auto", maxWidth: 600 }}>
+              <div style={{ width: 60, height: 60, borderRadius: 18, background: "rgba(239, 68, 68, 0.15)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px", color: "#f87171" }}>
+                <ShieldAlert size={34} />
+              </div>
+              <h2 style={{ color: "#ffffff", fontSize: 20, fontWeight: 800, margin: "0 0 10px" }}>Module Access Restricted</h2>
+              <p style={{ color: "#94a3b8", fontSize: 13.5, lineHeight: 1.6, margin: "0 0 20px" }}>
+                Your administrator account does not have permission to view or manage this module. Please contact your Super Administrator to request role assignment.
+              </p>
+              <button
+                className="admin-action-btn-primary"
+                onClick={() => handleTabChange(hasPerm("dashboard") ? "dashboard" : "settings")}
+                style={{ margin: "0 auto" }}
+              >
+                Return to Overview
+              </button>
+            </div>
+          )}
           {/* =========================================================
               TAB: DEDICATED SEPARATE ADD PRODUCT PAGE
              ========================================================= */}
@@ -803,14 +1193,11 @@ export default function AdminPanel({
                           className="admin-select"
                           value={addForm.category}
                           onChange={e => setAddForm({ ...addForm, category: e.target.value })}
+                          required
                         >
-                          <option value="Mobiles">Mobiles</option>
-                          <option value="Laptops">Laptops</option>
-                          <option value="Headphones">Headphones</option>
-                          <option value="Smartwatches">Smartwatches</option>
-                          <option value="Earbuds">Earbuds</option>
-                          <option value="Monitors">Monitors</option>
-                          <option value="Accessories">Accessories</option>
+                          {categories.filter(c => c !== "All").map(c => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
                         </select>
                       </div>
 
@@ -1377,11 +1764,91 @@ export default function AdminPanel({
              ========================================================= */}
           {activeTab === "products" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+              {/* Category-Wise Navigation Section */}
+              <div className="admin-category-nav-card">
+                <div className="admin-category-nav-header">
+                  <div className="admin-category-nav-title-group">
+                    <div className="admin-category-badge-icon">
+                      <Layers size={18} />
+                    </div>
+                    <div>
+                      <h3 className="admin-category-nav-title">Categories</h3>
+                      <p className="admin-category-nav-subtitle">
+                        Filter and manage inventory by product category ({categories.length - 1} categories, {products.length} total products)
+                      </p>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                    <button
+                      className="admin-btn-secondary"
+                      onClick={() => setIsCategoryModalOpen(true)}
+                      title="Manage Categories (Create, Rename, Delete)"
+                      style={{ height: "36px", fontSize: "12px" }}
+                    >
+                      <FolderPlus size={14} />
+                      <span>Manage Categories</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Category Pills Navigation Strip */}
+                <div className="admin-category-pills-container">
+                  {categories.map((catName) => {
+                    const isSelected = categoryFilter.toLowerCase() === catName.toLowerCase();
+                    const count = categoryCounts[catName] !== undefined
+                      ? categoryCounts[catName]
+                      : (catName === "All" ? products.length : 0);
+                    const IconComp = getCategoryIcon(catName);
+
+                    return (
+                      <button
+                        key={catName}
+                        type="button"
+                        className={`admin-category-pill-btn ${isSelected ? "active" : ""}`}
+                        onClick={() => handleCategorySelect(catName)}
+                        title={`Filter by ${catName} (${count} products)`}
+                      >
+                        <span className="pill-icon">
+                          <IconComp size={14} />
+                        </span>
+                        <span className="pill-label">{catName === "All" ? "All Products" : catName}</span>
+                        <span className={`pill-count ${isSelected ? "active-count" : ""}`}>
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Active Category Meta Bar */}
+                {categoryFilter !== "All" && (
+                  <div className="admin-active-category-bar">
+                    <div className="active-cat-info">
+                      <span>Filtering by:</span>
+                      <strong className="active-cat-name">{categoryFilter}</strong>
+                      <span className="active-cat-count">
+                        ({categoryCounts[categoryFilter] || 0} product{(categoryCounts[categoryFilter] || 0) === 1 ? "" : "s"})
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="active-cat-clear-btn"
+                      onClick={() => handleCategorySelect("All")}
+                      title="Reset to All Products"
+                    >
+                      <X size={13} />
+                      <span>Show All Categories</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Products Toolbar */}
               <div className="admin-toolbar">
                 <div className="toolbar-search">
                   <Search size={18} color="#94a3b8" />
                   <input
-                    placeholder="Search by title, category, description..."
+                    placeholder={`Search in ${categoryFilter === "All" ? "all categories" : categoryFilter} (name, description)...`}
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
                   />
@@ -1389,6 +1856,7 @@ export default function AdminPanel({
                     <button
                       onClick={() => setSearchQuery("")}
                       style={{ background: "none", border: 0, color: "#94a3b8", cursor: "pointer" }}
+                      title="Clear search"
                     >
                       <X size={16} />
                     </button>
@@ -1399,15 +1867,24 @@ export default function AdminPanel({
                   <select
                     className="toolbar-select"
                     value={categoryFilter}
-                    onChange={e => setCategoryFilter(e.target.value)}
+                    onChange={e => handleCategorySelect(e.target.value)}
+                    title="Category Filter"
                   >
-                    {categories.map(c => <option key={c} value={c}>{c === "All" ? "All Categories" : c}</option>)}
+                    {categories.map(c => {
+                      const cnt = categoryCounts[c] !== undefined ? categoryCounts[c] : (c === "All" ? products.length : 0);
+                      return (
+                        <option key={c} value={c}>
+                          {c === "All" ? `All Products (${cnt})` : `${c} (${cnt})`}
+                        </option>
+                      );
+                    })}
                   </select>
 
                   <select
                     className="toolbar-select"
                     value={stockFilter}
                     onChange={e => setStockFilter(e.target.value)}
+                    title="Stock Status Filter"
                   >
                     <option value="All">All Stock Levels</option>
                     <option value="In Stock">In Stock (&gt; 5)</option>
@@ -1415,12 +1892,35 @@ export default function AdminPanel({
                     <option value="Out of Stock">Out of Stock (0)</option>
                   </select>
 
-                  <button className="admin-btn-secondary" onClick={handleExportJSON}>
+                  <select
+                    className="toolbar-select"
+                    value={productSort}
+                    onChange={e => setProductSort(e.target.value)}
+                    title="Sort Products"
+                  >
+                    <option value="newest">Sort: Newest Added</option>
+                    <option value="price-asc">Price: Low to High</option>
+                    <option value="price-desc">Price: High to Low</option>
+                    <option value="rating">Highest Rated</option>
+                    <option value="stock-asc">Stock: Low to High</option>
+                    <option value="stock-desc">Stock: High to Low</option>
+                    <option value="name-asc">Alphabetical (A - Z)</option>
+                  </select>
+
+                  <button className="admin-btn-secondary" onClick={handleExportJSON} title="Export Catalog JSON">
                     <Download size={15} />
                     <span>Export</span>
                   </button>
 
-                  <button className="admin-action-btn-primary" onClick={() => handleTabChange("add-product")}>
+                  <button
+                    className="admin-action-btn-primary"
+                    onClick={() => {
+                      if (categoryFilter !== "All") {
+                        setAddForm(prev => ({ ...prev, category: categoryFilter }));
+                      }
+                      handleTabChange("add-product");
+                    }}
+                  >
                     <Plus size={16} />
                     <span>Add Product</span>
                   </button>
@@ -1518,16 +2018,47 @@ export default function AdminPanel({
 
                     {filteredProducts.length === 0 && (
                       <tr>
-                        <td colSpan="6" style={{ textAlign: "center", padding: "48px 20px" }}>
-                          <p style={{ color: "#94a3b8", fontSize: "15px", margin: "0 0 12px" }}>
-                            No products match your search or filters.
-                          </p>
-                          <button
-                            className="admin-btn-secondary"
-                            onClick={() => { setSearchQuery(""); setCategoryFilter("All"); setStockFilter("All"); }}
-                          >
-                            Reset Filters
-                          </button>
+                        <td colSpan="6" style={{ textAlign: "center", padding: "56px 20px" }}>
+                          <div className="admin-empty-category-container">
+                            <div className="admin-empty-icon-wrap">
+                              <Package size={34} color="#64748b" />
+                            </div>
+                            <h4 style={{ color: "#f1f5f9", margin: "14px 0 6px", fontSize: "16px" }}>
+                              {categoryFilter !== "All"
+                                ? `No products found in "${categoryFilter}"`
+                                : "No products match your filters"}
+                            </h4>
+                            <p style={{ color: "#94a3b8", fontSize: "13px", maxWidth: "440px", margin: "0 auto 18px", lineHeight: "1.5" }}>
+                              {searchQuery
+                                ? `No products in ${categoryFilter === "All" ? "the catalog" : `"${categoryFilter}"`} match "${searchQuery}". Try adjusting your keywords or clearing the category filter.`
+                                : `There are currently no products cataloged under the "${categoryFilter}" category. You can add a new product directly or reset your filters.`}
+                            </p>
+                            <div style={{ display: "flex", gap: "10px", justifyContent: "center", flexWrap: "wrap" }}>
+                              <button
+                                className="admin-btn-secondary"
+                                onClick={() => {
+                                  setSearchQuery("");
+                                  handleCategorySelect("All");
+                                  setStockFilter("All");
+                                  setProductSort("newest");
+                                }}
+                              >
+                                Reset All Filters
+                              </button>
+                              {categoryFilter !== "All" && (
+                                <button
+                                  className="admin-action-btn-primary"
+                                  onClick={() => {
+                                    setAddForm(prev => ({ ...prev, category: categoryFilter }));
+                                    handleTabChange("add-product");
+                                  }}
+                                >
+                                  <Plus size={15} />
+                                  <span>Add Product to {categoryFilter}</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
                         </td>
                       </tr>
                     )}
@@ -2192,6 +2723,29 @@ export default function AdminPanel({
           )}
 
           {/* =========================================================
+              TAB: FLASH SALES MANAGEMENT
+             ========================================================= */}
+          {activeTab === "flash-sales" && (
+            <AdminFlashSalesTab
+              products={products}
+              token={effectiveToken}
+              onViewProduct={onViewProduct}
+              showToast={showToast}
+            />
+          )}
+
+          {/* =========================================================
+              TAB: RETURNS & REFUNDS MANAGEMENT
+             ========================================================= */}
+          {activeTab === "returns" && (
+            <AdminReturnsTab
+              token={effectiveToken}
+              showToast={showToast}
+              onViewProduct={onViewProduct}
+            />
+          )}
+
+          {/* =========================================================
               TAB: ANALYTICS
              ========================================================= */}
           {activeTab === "analytics" && (
@@ -2476,14 +3030,11 @@ export default function AdminPanel({
                       className="admin-select"
                       value={editingProduct.category}
                       onChange={e => setEditingProduct({ ...editingProduct, category: e.target.value })}
+                      required
                     >
-                      <option value="Mobiles">Mobiles</option>
-                      <option value="Laptops">Laptops</option>
-                      <option value="Headphones">Headphones</option>
-                      <option value="Smartwatches">Smartwatches</option>
-                      <option value="Earbuds">Earbuds</option>
-                      <option value="Monitors">Monitors</option>
-                      <option value="Accessories">Accessories</option>
+                      {categories.filter(c => c !== "All").map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
                     </select>
                   </div>
 
@@ -2662,6 +3213,194 @@ export default function AdminPanel({
 
             <div className="admin-modal-footer">
               <button className="admin-btn-secondary" onClick={() => setSelectedOrderDetails(null)}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CATEGORY MANAGEMENT */}
+      {isCategoryModalOpen && (
+        <div className="admin-cat-modal-overlay" onClick={() => setIsCategoryModalOpen(false)}>
+          <div className="admin-cat-modal" onClick={e => e.stopPropagation()}>
+            <div className="admin-cat-modal-header">
+              <h3>
+                <FolderPlus size={18} color="#38bdf8" />
+                <span>Product Categories Management</span>
+              </h3>
+              <button
+                className="admin-modal-close"
+                onClick={() => setIsCategoryModalOpen(false)}
+                title="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="admin-cat-modal-body">
+              {/* Add New Category Form */}
+              <form onSubmit={handleCreateCategory}>
+                <label style={{ fontSize: "12px", color: "#94a3b8", display: "block", marginBottom: "6px" }}>
+                  Create New Category
+                </label>
+                <div className="admin-cat-add-row">
+                  <input
+                    className="admin-input"
+                    placeholder="e.g. Tablets, Wearables, Cameras..."
+                    value={newCategoryName}
+                    onChange={e => setNewCategoryName(e.target.value)}
+                    style={{ flex: 1 }}
+                  />
+                  <button type="submit" className="admin-action-btn-primary">
+                    <Plus size={16} />
+                    <span>Add Category</span>
+                  </button>
+                </div>
+              </form>
+
+              {/* Existing Categories List */}
+              <div>
+                <label style={{ fontSize: "12px", color: "#94a3b8", display: "block", marginBottom: "10px" }}>
+                  Active Categories &amp; Product Counts ({categories.length - 1} categories)
+                </label>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "320px", overflowY: "auto" }}>
+                  {categories.filter(c => c !== "All").map(catName => {
+                    const count = categoryCounts[catName] || 0;
+                    const IconComp = getCategoryIcon(catName);
+                    const isRenaming = renamingCategory?.oldName === catName;
+
+                    return (
+                      <div key={catName} className="admin-cat-item-row">
+                        <div className="admin-cat-item-info">
+                          <span style={{ color: "#38bdf8", display: "flex" }}>
+                            <IconComp size={16} />
+                          </span>
+                          {isRenaming ? (
+                            <input
+                              className="admin-input"
+                              value={renamingCategory.newName}
+                              onChange={e => setRenamingCategory({ ...renamingCategory, newName: e.target.value })}
+                              style={{ height: "30px", fontSize: "13px", padding: "4px 8px" }}
+                              autoFocus
+                            />
+                          ) : (
+                            <span className="admin-cat-item-name">{catName}</span>
+                          )}
+                          <span className="pill-count" style={{ marginLeft: "6px" }}>
+                            {count} product{count === 1 ? "" : "s"}
+                          </span>
+                        </div>
+
+                        <div className="admin-cat-actions">
+                          {isRenaming ? (
+                            <>
+                              <button
+                                className="action-icon-btn"
+                                onClick={() => handleRenameCategory(catName, renamingCategory.newName)}
+                                title="Save new name"
+                                style={{ color: "#34d399" }}
+                              >
+                                <Check size={14} />
+                              </button>
+                              <button
+                                className="action-icon-btn"
+                                onClick={() => setRenamingCategory(null)}
+                                title="Cancel rename"
+                              >
+                                <X size={14} />
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                className="action-icon-btn"
+                                onClick={() => setRenamingCategory({ oldName: catName, newName: catName })}
+                                title={`Rename ${catName}`}
+                              >
+                                <Edit2 size={13} />
+                              </button>
+                              <button
+                                className="action-icon-btn delete-btn"
+                                onClick={() => handleDeleteCategory(catName)}
+                                title={`Delete ${catName}`}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Safe Reassignment Warning when deleting a category with products */}
+              {deletingCategory && (
+                <div style={{
+                  background: "rgba(239, 68, 68, 0.1)",
+                  border: "1px solid rgba(239, 68, 68, 0.3)",
+                  borderRadius: "10px",
+                  padding: "16px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "12px"
+                }}>
+                  <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
+                    <AlertTriangle size={18} color="#f87171" style={{ flexShrink: 0, marginTop: "2px" }} />
+                    <div style={{ fontSize: "13px", color: "#fca5a5" }}>
+                      <strong>Cannot delete non-empty category:</strong>
+                      <p style={{ margin: "4px 0 0", color: "#f1f5f9" }}>
+                        Category <strong>"{deletingCategory.name}"</strong> currently contains <strong>{deletingCategory.count}</strong> product(s). To delete this category safely, reassign its products to another category:
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+                    <select
+                      className="admin-select"
+                      value={categoryReassignTarget}
+                      onChange={e => setCategoryReassignTarget(e.target.value)}
+                      style={{ flex: 1, minWidth: "200px", height: "38px" }}
+                    >
+                      <option value="">Select Reassignment Category...</option>
+                      {categories.filter(c => c !== "All" && c !== deletingCategory.name).map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+
+                    <button
+                      className="admin-action-btn-primary"
+                      disabled={!categoryReassignTarget}
+                      style={{
+                        background: categoryReassignTarget ? "#ef4444" : "#475569",
+                        cursor: categoryReassignTarget ? "pointer" : "not-allowed"
+                      }}
+                      onClick={() => {
+                        handleDeleteCategory(deletingCategory.name, categoryReassignTarget);
+                        setCategoryReassignTarget("");
+                      }}
+                    >
+                      Reassign &amp; Delete
+                    </button>
+                    <button
+                      className="admin-btn-secondary"
+                      onClick={() => setDeletingCategory(null)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="admin-modal-footer">
+              <button
+                type="button"
+                className="admin-btn-secondary"
+                onClick={() => setIsCategoryModalOpen(false)}
+              >
                 Close
               </button>
             </div>

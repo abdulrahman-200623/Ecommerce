@@ -77,14 +77,18 @@ export default function CheckoutPage({
   // Saved profile / address retrieval
   const savedProfile = useMemo(() => {
     try {
+      let loggedUser = null;
+      const uStr = localStorage.getItem("techzone_user");
+      if (uStr) loggedUser = JSON.parse(uStr);
+
       return {
-        name: localStorage.getItem("techzone_customer_name") || "",
-        email: localStorage.getItem("techzone_customer_email") || "",
-        phone: localStorage.getItem("techzone_customer_phone") || "",
-        address: localStorage.getItem("techzone_saved_address") || "",
-        city: localStorage.getItem("techzone_saved_city") || "",
-        state: localStorage.getItem("techzone_saved_state") || "",
-        pincode: localStorage.getItem("techzone_saved_pincode") || ""
+        name: loggedUser?.name || localStorage.getItem("techzone_customer_name") || "",
+        email: loggedUser?.email || localStorage.getItem("techzone_customer_email") || "",
+        phone: loggedUser?.phone || localStorage.getItem("techzone_customer_phone") || "",
+        address: loggedUser?.address?.street || localStorage.getItem("techzone_saved_address") || "",
+        city: loggedUser?.address?.city || localStorage.getItem("techzone_saved_city") || "",
+        state: loggedUser?.address?.state || localStorage.getItem("techzone_saved_state") || "",
+        pincode: loggedUser?.address?.pincode || localStorage.getItem("techzone_saved_pincode") || ""
       };
     } catch (e) {
       return {};
@@ -327,7 +331,10 @@ export default function CheckoutPage({
         notes: `Smart Checkout order via TechZone web`
       };
 
-      const res = await axios.post(`${API_BASE}/orders/checkout`, payload);
+      const token = localStorage.getItem("techzone_token");
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+      const res = await axios.post(`${API_BASE}/orders/checkout`, payload, { headers });
 
       if (res.data?.success && res.data.order) {
         const order = res.data.order;

@@ -3,11 +3,27 @@ const mongoose = require("mongoose");
 const Order = require("../models/Order");
 const Product = require("../models/Product");
 const Coupon = require("../models/Coupon");
+const FlashSale = require("../models/FlashSale");
+const { authMiddleware, adminMiddleware, requirePermission, optionalAuth } = require("../middleware/auth");
+const { logActivity } = require("../services/activityLogger");
 
 // Regex patterns
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const INDIAN_PHONE_REGEX = /^(\+91[\-\s]?)?[6-9]\d{9}$/;
 const PINCODE_REGEX = /^\d{6}$/;
+
+// Helper to look up an active flash sale for a product
+async function findActiveFlashSale(productId) {
+  if (!productId) return null;
+  const now = new Date();
+  const pIdStr = String(productId);
+  return await FlashSale.findOne({
+    productId: pIdStr,
+    isActive: true,
+    startTime: { $lte: now },
+    endTime: { $gt: now }
+  });
+}
 
 // Helper to look up a product by ID (handles both ObjectId and string ID)
 async function findProductById(idStr) {
@@ -16,9 +32,20 @@ async function findProductById(idStr) {
     const doc = await Product.findById(pId);
     if (doc) return doc;
   }
-  return await Product.findOne({
-    $or: [{ _id: pId }, { productId: pId }]
-  });
+  return await Product.findOne({ productId: pId });
+}
+
+// Helper to look up an order by ObjectId or orderNumber
+async function findOrderByIdOrNumber(id) {
+  if (!id) return null;
+  const idStr = String(id).trim();
+  if (mongoose.Types.ObjectId.isValid(idStr)) {
+    const doc = await Order.findById(idStr);
+    if (doc) return doc;
+  }
+  let doc = await Order.findOne({ orderNumber: idStr });
+  if (doc) return doc;
+  return await Order.findOne({ orderNumber: `TZ-${idStr}` });
 }
 
 // GET all orders (sorted newest first)
@@ -102,7 +129,15 @@ router.post("/calculate-summary", async (req, res) => {
         });
       }
 
-      const unitPrice = dbProduct.price;
+      let unitPrice = dbProduct.price;
+      const activeSale = await findActiveFlashSale(dbProduct._id);
+      if (activeSale) {
+        // Apply flash sale price if quota allows
+        if (activeSale.saleQuantity <= 0 || (activeSale.soldQuantity + requestedQty <= activeSale.saleQuantity)) {
+          unitPrice = activeSale.salePrice;
+        }
+      }
+
       subtotal += unitPrice * requestedQty;
       verifiedItems.push({
         productId: String(dbProduct._id),
@@ -175,7 +210,7 @@ router.post("/calculate-summary", async (req, res) => {
 });
 
 // POST process smart checkout and create order
-router.post("/checkout", async (req, res) => {
+router.post("/checkout", optionalAuth, async (req, res) => {
   try {
     const {
       customer,
@@ -230,6 +265,7 @@ router.post("/checkout", async (req, res) => {
     let subtotal = 0;
     const finalOrderItems = [];
     const productsToUpdateStock = [];
+    const salesToUpdateSold = [];
 
     for (const item of items) {
       const pId = item.productId || item._id;
@@ -245,7 +281,15 @@ router.post("/checkout", async (req, res) => {
           });
         }
 
-        const price = dbProduct.price;
+        let price = dbProduct.price;
+        const activeSale = await findActiveFlashSale(dbProduct._id);
+        if (activeSale) {
+          if (activeSale.saleQuantity <= 0 || (activeSale.soldQuantity + requestedQty <= activeSale.saleQuantity)) {
+            price = activeSale.salePrice;
+            salesToUpdateSold.push({ saleId: activeSale._id, qty: requestedQty });
+          }
+        }
+
         subtotal += price * requestedQty;
         finalOrderItems.push({
           productId: String(dbProduct._id),
@@ -312,7 +356,7 @@ router.post("/checkout", async (req, res) => {
     const paymentStatus = isCOD ? "Pending" : "Paid";
     const transactionId = isCOD ? "" : `TXN-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    // 8. Safely reduce inventory in MongoDB
+    // 8. Safely reduce inventory in MongoDB & update flash sales sold count
     for (const pUpdate of productsToUpdateStock) {
       try {
         await Product.findByIdAndUpdate(pUpdate.productId, {
@@ -323,11 +367,26 @@ router.post("/checkout", async (req, res) => {
       }
     }
 
+    for (const sUpdate of salesToUpdateSold) {
+      try {
+        await FlashSale.findByIdAndUpdate(sUpdate.saleId, {
+          $inc: { soldQuantity: sUpdate.qty }
+        });
+      } catch (saleErr) {
+        console.error("Flash sale sold count update error:", saleErr.message);
+      }
+    }
+
     // 9. Generate unique order number
     const orderNumber = "TZ-" + Math.floor(100000 + Math.random() * 900000);
 
     // 10. Create order document
+    const estimatedDays = isExpress ? 2 : 4;
+    const estDelivery = new Date();
+    estDelivery.setDate(estDelivery.getDate() + estimatedDays);
+
     const newOrder = await Order.create({
+      userId: req.user?._id || null,
       orderNumber,
       customer: {
         name,
@@ -346,6 +405,14 @@ router.post("/checkout", async (req, res) => {
       couponCode: appliedCouponCode,
       totalAmount,
       status: "Pending",
+      statusTimeline: [
+        {
+          status: "Pending",
+          timestamp: new Date(),
+          note: "Order placed successfully"
+        }
+      ],
+      estimatedDeliveryDate: estDelivery,
       paymentMethod,
       paymentStatus,
       paymentDetails: {
@@ -364,23 +431,251 @@ router.post("/checkout", async (req, res) => {
   }
 });
 
+// ==========================================
+// USER ORDER HISTORY & MANAGEMENT ENDPOINTS
+// ==========================================
+
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// Handler for user's order list with filters & pagination
+async function handleGetMyOrders(req, res) {
+  try {
+    const user = req.user;
+    const {
+      status,
+      search,
+      dateRange,
+      startDate,
+      endDate,
+      sort = "newest",
+      page = 1,
+      limit = 10
+    } = req.query;
+
+    const queryFilter = {
+      $or: [
+        { userId: user._id },
+        { "customer.email": { $regex: new RegExp(`^${escapeRegex(user.email)}$`, "i") } }
+      ]
+    };
+
+    // Filter by Order Status
+    if (status && status !== "All" && status !== "all") {
+      queryFilter.status = status;
+    }
+
+    // Filter by Date Range
+    if (startDate || endDate) {
+      queryFilter.createdAt = {};
+      if (startDate) queryFilter.createdAt.$gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        queryFilter.createdAt.$lte = end;
+      }
+    } else if (dateRange) {
+      const now = new Date();
+      if (dateRange === "30days") {
+        const d = new Date();
+        d.setDate(now.getDate() - 30);
+        queryFilter.createdAt = { $gte: d };
+      } else if (dateRange === "6months") {
+        const d = new Date();
+        d.setMonth(now.getMonth() - 6);
+        queryFilter.createdAt = { $gte: d };
+      } else if (dateRange === "year") {
+        const d = new Date();
+        d.setFullYear(now.getFullYear() - 1);
+        queryFilter.createdAt = { $gte: d };
+      }
+    }
+
+    // Search by Order ID or Product Name
+    if (search && search.trim()) {
+      const s = search.trim();
+      const searchRegex = new RegExp(escapeRegex(s), "i");
+      queryFilter.$and = [
+        {
+          $or: [
+            { orderNumber: searchRegex },
+            { "items.name": searchRegex }
+          ]
+        }
+      ];
+    }
+
+    // Sorting
+    let sortOptions = { createdAt: -1 };
+    if (sort === "oldest") sortOptions = { createdAt: 1 };
+    else if (sort === "price_high") sortOptions = { totalAmount: -1 };
+    else if (sort === "price_low") sortOptions = { totalAmount: 1 };
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.max(1, Math.min(50, parseInt(limit, 10) || 10));
+    const skip = (pageNum - 1) * limitNum;
+
+    const totalOrders = await Order.countDocuments(queryFilter);
+    const orders = await Order.find(queryFilter)
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(limitNum);
+
+    res.json({
+      success: true,
+      orders,
+      totalOrders,
+      page: pageNum,
+      totalPages: Math.ceil(totalOrders / limitNum) || 1
+    });
+  } catch (err) {
+    console.error("Error retrieving user orders:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to retrieve your order history. Please try again."
+    });
+  }
+}
+
+// GET /api/orders/my-orders (Protected)
+router.get("/my-orders", authMiddleware, handleGetMyOrders);
+router.get("/myorders", authMiddleware, handleGetMyOrders);
+
+// GET /api/orders/my-orders/:id - Single order details with strict ownership enforcement
+router.get("/my-orders/:id", authMiddleware, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const user = req.user;
+    const order = await findOrderByIdOrNumber(id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found."
+      });
+    }
+
+    // Strict ownership verification
+    const isOwner =
+      (order.userId && String(order.userId) === String(user._id)) ||
+      (order.customer?.email && order.customer.email.toLowerCase() === user.email.toLowerCase()) ||
+      user.role === "admin";
+
+    if (!isOwner) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You are only authorized to view orders placed under your own account."
+      });
+    }
+
+    res.json({
+      success: true,
+      order
+    });
+  } catch (err) {
+    console.error("Error fetching order details:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to load order details."
+    });
+  }
+});
+
+// Helper for cancelling an order
+async function handleCancelOrder(req, res) {
+  try {
+    const id = req.params.id;
+    const user = req.user;
+    const { reason = "Cancelled by user" } = req.body;
+    const order = await findOrderByIdOrNumber(id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found."
+      });
+    }
+
+    // Ownership check
+    const isOwner =
+      (order.userId && String(order.userId) === String(user._id)) ||
+      (order.customer?.email && order.customer.email.toLowerCase() === user.email.toLowerCase()) ||
+      user.role === "admin";
+
+    if (!isOwner) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You can only cancel your own orders."
+      });
+    }
+
+    // Check cancellation business rules
+    if (order.status === "Cancelled") {
+      return res.status(400).json({
+        success: false,
+        message: "This order has already been cancelled."
+      });
+    }
+
+    if (["Shipped", "Delivered", "Returned"].includes(order.status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Order cannot be cancelled because it is already marked as '${order.status}'. Please contact TechZone Support for assistance.`
+      });
+    }
+
+    // Permitted to cancel (Pending, Confirmed, Processing)
+    order.status = "Cancelled";
+    if (!Array.isArray(order.statusTimeline)) {
+      order.statusTimeline = [];
+    }
+    order.statusTimeline.push({
+      status: "Cancelled",
+      timestamp: new Date(),
+      note: reason || "Cancelled by customer"
+    });
+
+    // Safely restore inventory in MongoDB
+    if (Array.isArray(order.items)) {
+      for (const item of order.items) {
+        if (item.productId) {
+          try {
+            await Product.findByIdAndUpdate(item.productId, {
+              $inc: { stock: item.qty || 1 }
+            });
+          } catch (stockErr) {
+            console.error("Restock error on cancellation:", stockErr.message);
+          }
+        }
+      }
+    }
+
+    await order.save();
+
+    res.json({
+      success: true,
+      message: `Order ${order.orderNumber} has been cancelled successfully.`,
+      order
+    });
+  } catch (err) {
+    console.error("Error cancelling order:", err);
+    res.status(500).json({
+      success: false,
+      message: err.message || "Failed to cancel order."
+    });
+  }
+}
+
+// PUT /api/orders/my-orders/:id/cancel and POST /api/orders/my-orders/:id/cancel
+router.put("/my-orders/:id/cancel", authMiddleware, handleCancelOrder);
+router.post("/my-orders/:id/cancel", authMiddleware, handleCancelOrder);
+
 // GET single order by ID or orderNumber
 router.get("/:id", async (req, res) => {
   try {
     const id = req.params.id;
-    let order = null;
-
-    if (mongoose.Types.ObjectId.isValid(id)) {
-      order = await Order.findById(id);
-    }
-    if (!order) {
-      order = await Order.findOne({ orderNumber: id });
-    }
-    if (!order) {
-      order = await Order.findOne({
-        $or: [{ _id: id }, { orderNumber: `TZ-${id}` }]
-      });
-    }
+    const order = await findOrderByIdOrNumber(id);
 
     if (!order) return res.status(404).json({ message: "Order not found" });
     res.json(order);
@@ -404,7 +699,7 @@ router.post("/", async (req, res) => {
 });
 
 // PUT update order status or details
-router.put("/:id", async (req, res) => {
+router.put("/:id", adminMiddleware, requirePermission("orders"), async (req, res) => {
   try {
     const allowedStatuses = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"];
     if (req.body.status && !allowedStatuses.includes(req.body.status)) {
@@ -413,6 +708,16 @@ router.put("/:id", async (req, res) => {
 
     const order = await Order.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!order) return res.status(404).json({ message: "Order not found" });
+
+    logActivity({
+      action: "ORDER_STATUS_UPDATE",
+      description: `Updated status for order #${order.orderNumber || order._id} to "${order.status}"`,
+      performedBy: req.user,
+      target: { id: order._id, name: `Order #${order.orderNumber || order._id}`, type: "Order" },
+      details: { status: order.status, totalAmount: order.totalAmount },
+      ipAddress: req.ip
+    });
+
     res.json(order);
   } catch (e) {
     res.status(400).json({ message: e.message });
@@ -420,9 +725,21 @@ router.put("/:id", async (req, res) => {
 });
 
 // DELETE order
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", adminMiddleware, requirePermission("orders"), async (req, res) => {
   try {
+    const existing = await Order.findById(req.params.id);
     await Order.findByIdAndDelete(req.params.id);
+
+    if (existing) {
+      logActivity({
+        action: "ORDER_DELETE",
+        description: `Deleted order #${existing.orderNumber || existing._id}`,
+        performedBy: req.user,
+        target: { id: existing._id, name: `Order #${existing.orderNumber || existing._id}`, type: "Order" },
+        ipAddress: req.ip
+      });
+    }
+
     res.json({ message: "Order deleted successfully" });
   } catch (e) {
     res.status(400).json({ message: e.message });

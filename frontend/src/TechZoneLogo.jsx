@@ -1,9 +1,11 @@
 import React from "react";
 
 /**
- * Modern TechZone Brand Logo
- * Combines a custom technology-inspired blue-and-white circuit monogram symbol
- * with professional "TechZone" typography ("Tech" in white, "Zone" in electric blue).
+ * Authentic TechZone Retail Brand Logo
+ * Clean, modern electronics retail identity:
+ * - Crisp geometric circuit monogram with lavender (#7C5CFC) accent
+ * - Deep black typography for "Tech" (#111827) and refined lavender for "Zone" (#7C5CFC)
+ * - Optimized for white and light navbar backgrounds
  */
 export default function TechZoneLogo({ onClick, className = "", size = "normal" }) {
   const isCompact = size === "compact";
@@ -15,10 +17,10 @@ export default function TechZoneLogo({ onClick, className = "", size = "normal" 
       className={`techzone-navbar-logo ${className}`}
       onClick={onClick}
       aria-label="TechZone Home"
-      title="TechZone - Electronics E-Commerce"
+      title="TechZone - Electronics Retail Store"
       id="techzone-brand-logo-btn"
     >
-      {/* Modern Blue & White Technology-Inspired Symbol */}
+      {/* Refined Retail Monogram Symbol */}
       <span className="techzone-logo-symbol" aria-hidden="true">
         <svg
           width={iconSize}
@@ -27,69 +29,51 @@ export default function TechZoneLogo({ onClick, className = "", size = "normal" 
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
-          <defs>
-            <linearGradient id="tzBlueGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#38bdf8" />
-              <stop offset="100%" stop-color="#2563eb" />
-            </linearGradient>
-            <linearGradient id="tzInnerGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#1e293b" />
-              <stop offset="100%" stop-color="#0f172a" />
-            </linearGradient>
-          </defs>
-
-          {/* Microchip / Hex-shield Base Container */}
+          {/* Subtle lavender container base */}
           <rect
             x="2"
             y="2"
             width="32"
             height="32"
-            rx="8.5"
-            fill="url(#tzInnerGlow)"
-            stroke="url(#tzBlueGradient)"
-            strokeWidth="1.8"
+            rx="9"
+            fill="#F4F0FF"
+            stroke="#DDD6FE"
+            strokeWidth="1.5"
           />
 
-          {/* Technology Circuit Node Lines */}
+          {/* Minimalist Microchip Node Grid */}
+          <circle cx="8" cy="18" r="1.5" fill="#7C5CFC" />
+          <circle cx="28" cy="18" r="1.5" fill="#7C5CFC" />
           <path
-            d="M6 18H9M27 18H30"
-            stroke="#38bdf8"
+            d="M8 18H11M25 18H28"
+            stroke="#C4B5FD"
             strokeWidth="1.5"
             strokeLinecap="round"
-            opacity="0.7"
-          />
-          <path
-            d="M18 6V9M18 27V30"
-            stroke="#38bdf8"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            opacity="0.7"
           />
 
-          {/* Stylized "T" Crossbar in Crisp White */}
+          {/* Clean "T" Crossbar in deep black */}
           <path
-            d="M9.5 11.5H26.5"
-            stroke="#ffffff"
-            strokeWidth="2.75"
+            d="M10 11.5H26"
+            stroke="#111827"
+            strokeWidth="2.8"
             strokeLinecap="round"
           />
 
-          {/* Dynamic "Z" / Lightning Energy Stem in Vibrant Blue */}
+          {/* Dynamic "Z" Monogram Path in rich lavender */}
           <path
-            d="M20.5 12L12.5 22.5H24"
-            stroke="url(#tzBlueGradient)"
-            strokeWidth="2.75"
+            d="M21 12.5L13.5 23.5H23.5"
+            stroke="#7C5CFC"
+            strokeWidth="2.8"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
 
-          {/* Accent Circuit Node Dots */}
-          <circle cx="24" cy="22.5" r="1.5" fill="#38bdf8" />
-          <circle cx="12" cy="11.5" r="1.3" fill="#ffffff" />
+          {/* Precision Accent Pulse Dot */}
+          <circle cx="23.5" cy="23.5" r="1.4" fill="#5B21B6" />
         </svg>
       </span>
 
-      {/* Brand Typography: "Tech" in White, "Zone" in Bright Blue */}
+      {/* Brand Typography: Deep Black + Primary Lavender */}
       <span className="techzone-logo-text">
         <span className="logo-text-tech">Tech</span>
         <span className="logo-text-zone">Zone</span>

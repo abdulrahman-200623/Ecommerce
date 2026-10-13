@@ -3,181 +3,220 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowRight,
-  Sparkles,
+  ShieldCheck,
+  Tag,
   Zap,
-  Flame,
-  Pause,
-  Play
+  Truck
 } from "lucide-react";
 import "./heroSlider.css";
 
-// Fallback high-quality electronics image presets
+// Authentic curated photography for electronics
 const FALLBACK_IMAGES = {
-  mobiles: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=1200&q=80",
-  laptops: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=1200&q=80",
-  headphones: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1200&q=80",
-  smartwatches: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=1200&q=80"
+  mobiles: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=800&q=80",
+  laptops: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=800&q=80",
+  headphones: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80",
+  smartwatches: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80"
 };
 
 export const HERO_SLIDES = [
   {
     id: "mobiles-slide",
-    theme: "theme-blue",
     category: "Mobiles",
-    badgeIcon: Zap,
-    badgeText: "FLAGSHIP MOBILE SALE",
+    badgeText: "Official Flagship Launch",
     titlePrefix: "Next-Gen Performance.",
     titleHighlight: "OnePlus 13 & Galaxy S24",
     description:
-      "Experience lightning Snapdragon speed, cinema-grade AMOLED displays, and pro-grade 108MP camera systems.",
-    offerBadge: "UP TO 20% OFF",
-    offerDetail: "Starting at ₹49,999 · Free Express Delivery",
-    primaryCtaText: "Explore Mobiles",
+      "Engineered with Snapdragon 8 Elite, ultra-bright 120Hz LTPO display, and pro Hasselblad triple lens system.",
+    offerBadge: "SAVE 12%",
+    offerDetail: "From ₹69,999 · Instant ₹5,000 Bank Rebate",
+    primaryCtaText: "Shop Flagship Mobiles",
     primaryCtaLink: "/products?category=Mobiles",
-    secondaryCtaText: "View Top Deals",
-    secondaryCtaLink: "/products",
-    image: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=1200&q=85",
-    fallbackKey: "mobiles"
+    secondaryCtaText: "Compare Specs",
+    secondaryCtaLink: "/products?category=Mobiles",
+    image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=800&q=80",
+    fallbackKey: "mobiles",
+    warrantyTag: "2-Year Official Brand Warranty",
+    startingPrice: "₹69,999"
   },
   {
     id: "laptops-slide",
-    theme: "theme-purple",
     category: "Laptops",
-    badgeIcon: Flame,
-    badgeText: "PRO COMPUTING & GAMING",
+    badgeText: "Pro Workstation Computing",
     titlePrefix: "Power Your Vision.",
-    titleHighlight: "MacBook Pro & Intel Core i7",
+    titleHighlight: "ASUS Vivobook 15 & MacBook",
     description:
-      "Engineered for creators, developers, and power gamers with stunning Retina displays and RTX dedicated graphics.",
-    offerBadge: "SAVE UP TO ₹15,000",
-    offerDetail: "Use Coupon 'TECHZONE10' for extra 10% off",
-    primaryCtaText: "Shop Laptops",
+      "Crafted for architects, software creators, and students. Intel Core i5 with ultra-fast 512GB PCIe NVMe SSD.",
+    offerBadge: "FLAT ₹5,000 OFF",
+    offerDetail: "Starting at ₹44,990 · Free Laptop Sleeve Included",
+    primaryCtaText: "Explore Laptops",
     primaryCtaLink: "/products?category=Laptops",
-    secondaryCtaText: "Smart Features",
-    secondaryCtaLink: "/features",
-    image: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=1200&q=85",
-    fallbackKey: "laptops"
+    secondaryCtaText: "All Computing Deals",
+    secondaryCtaLink: "/products?category=Laptops",
+    image: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=800&q=80",
+    fallbackKey: "laptops",
+    warrantyTag: "100% Genuine Intel Authorized",
+    startingPrice: "₹44,990"
   },
   {
     id: "headphones-slide",
-    theme: "theme-amber",
     category: "Headphones",
-    badgeIcon: Sparkles,
-    badgeText: "STUDIO AUDIO SERIES",
-    titlePrefix: "Silence The World.",
-    titleHighlight: "Sony WH-1000XM5 & AirPods",
+    badgeText: "Pure Studio Acoustic Fidelity",
+    titlePrefix: "Silence The Noise.",
+    titleHighlight: "JBL Tune 720BT & Sony Studio",
     description:
-      "Pure acoustic fidelity with industry-leading Active Noise Cancellation and up to 40-hour wireless listening.",
-    offerBadge: "FLAT 25% OFF",
-    offerDetail: "Free Delivery & 7-Day Hassle-Free Returns",
-    primaryCtaText: "Discover Audio",
+      "Wireless over-ear headphones with 40mm deep bass drivers, 76-hour battery life, and high-clarity voice calls.",
+    offerBadge: "SAVE 15%",
+    offerDetail: "Deal Price ₹5,099 · Express Same-Day Dispatch",
+    primaryCtaText: "Discover Headphones",
     primaryCtaLink: "/products?category=Headphones",
-    secondaryCtaText: "Explore Earbuds",
-    secondaryCtaLink: "/products?category=Earbuds",
-    image: "https://images.unsplash.com/photo-1546435770-a3e426bf472b?auto=format&fit=crop&w=1200&q=85",
-    fallbackKey: "headphones"
+    secondaryCtaText: "View Audio Series",
+    secondaryCtaLink: "/products?category=Headphones",
+    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80",
+    fallbackKey: "headphones",
+    warrantyTag: "Official JBL 1-Year Guarantee",
+    startingPrice: "₹5,099"
   },
   {
     id: "smartwatches-slide",
-    theme: "theme-emerald",
     category: "Smartwatches",
-    badgeIcon: Zap,
-    badgeText: "INTELLIGENT WEARABLES",
-    titlePrefix: "Track Every Beat.",
-    titleHighlight: "Apple Watch & Galaxy Fit",
+    badgeText: "Connected Wearable Tech",
+    titlePrefix: "Track Every Move.",
+    titleHighlight: "boAt Wave Call & Galaxy Fit",
     description:
-      "24/7 heart rate monitoring, precision GPS tracking, and seamless wireless connectivity on your wrist.",
-    offerBadge: "DEALS FROM ₹1,999",
-    offerDetail: "100% Genuine Tech · Warranty Backed",
+      "Advanced 1.69\" HD curved display with Bluetooth calling, 24/7 heart-rate monitor, and 100+ active fitness modes.",
+    offerBadge: "SAVE 20%",
+    offerDetail: "Special Offer ₹1,999 · 7-Day Replacement Guarantee",
     primaryCtaText: "Shop Smartwatches",
     primaryCtaLink: "/products?category=Smartwatches",
-    secondaryCtaText: "All Accessories",
-    secondaryCtaLink: "/products?category=Accessories",
-    image: "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&w=1200&q=85",
-    fallbackKey: "smartwatches"
+    secondaryCtaText: "All Wearables",
+    secondaryCtaLink: "/products?category=Smartwatches",
+    image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80",
+    fallbackKey: "smartwatches",
+    warrantyTag: "Official boAt Authorized Retail",
+    startingPrice: "₹1,999"
   }
 ];
 
-const AUTOPLAY_INTERVAL_MS = 4500; // 4.5 seconds
+const AUTOPLAY_INTERVAL_MS = 5000;
+const TRANSITION_DURATION_MS = 700;
 
 const HeroSlider = memo(function HeroSlider({ onNavigate }) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [prevIndex, setPrevIndex] = useState(null);
+  const [direction, setDirection] = useState("next");
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const [touchStartPos, setTouchStartPos] = useState({ x: 0, y: 0 });
-  const [touchDeltaX, setTouchDeltaX] = useState(0);
+  const [isTabVisible, setIsTabVisible] = useState(
+    typeof document !== "undefined" ? !document.hidden : true
+  );
 
   const totalSlides = HERO_SLIDES.length;
   const timerRef = useRef(null);
+  const transitionTimerRef = useRef(null);
 
-  // Next Slide Action
-  const handleNext = useCallback(() => {
-    setCurrentIndex((prev) => (prev + 1) % totalSlides);
-  }, [totalSlides]);
-
-  // Previous Slide Action
-  const handlePrev = useCallback(() => {
-    setCurrentIndex((prev) => (prev - 1 + totalSlides) % totalSlides);
-  }, [totalSlides]);
-
-  // Jump directly to Slide
-  const handleGoToSlide = useCallback((index) => {
-    setCurrentIndex(index);
+  // Preload all slide images on mount to eliminate blank frames or loading flickers
+  useEffect(() => {
+    HERO_SLIDES.forEach((slide) => {
+      if (slide.image) {
+        const img = new Image();
+        img.src = slide.image;
+      }
+    });
   }, []);
 
-  // Autoplay setup with pause-on-hover & clean timer destruction
+  // Preload next upcoming slide image dynamically
   useEffect(() => {
-    if (isHovered) {
-      if (timerRef.current) clearInterval(timerRef.current);
+    const nextIdx = (currentIndex + 1) % totalSlides;
+    const nextSlide = HERO_SLIDES[nextIdx];
+    if (nextSlide?.image) {
+      const img = new Image();
+      img.src = nextSlide.image;
+    }
+  }, [currentIndex, totalSlides]);
+
+  // Tab visibility listener to pause/resume autoplay when user switches browser tabs
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsTabVisible(!document.hidden);
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
+  // Cleanup transition timer on unmount
+  useEffect(() => {
+    return () => {
+      if (transitionTimerRef.current) {
+        clearTimeout(transitionTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Central transition handler
+  const goToSlide = useCallback((targetIndex, dir = "next") => {
+    setCurrentIndex((current) => {
+      if (targetIndex === current) return current;
+
+      setPrevIndex(current);
+      setDirection(dir);
+      setIsTransitioning(true);
+
+      if (transitionTimerRef.current) {
+        clearTimeout(transitionTimerRef.current);
+      }
+
+      transitionTimerRef.current = setTimeout(() => {
+        setIsTransitioning(false);
+        setPrevIndex(null);
+      }, TRANSITION_DURATION_MS);
+
+      return targetIndex;
+    });
+  }, []);
+
+  const handleNext = useCallback(() => {
+    goToSlide((currentIndex + 1) % totalSlides, "next");
+  }, [currentIndex, totalSlides, goToSlide]);
+
+  const handlePrev = useCallback(() => {
+    goToSlide((currentIndex - 1 + totalSlides) % totalSlides, "prev");
+  }, [currentIndex, totalSlides, goToSlide]);
+
+  const handleGoToSlide = useCallback((index) => {
+    if (index === currentIndex) return;
+    const dir = index > currentIndex ? "next" : "prev";
+    goToSlide(index, dir);
+  }, [currentIndex, goToSlide]);
+
+  // Autoplay effect - automatically resets whenever currentIndex, isHovered, or isTabVisible changes
+  useEffect(() => {
+    if (isHovered || !isTabVisible) {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
       return;
     }
 
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+
     timerRef.current = setInterval(() => {
-      handleNext();
+      goToSlide((currentIndex + 1) % totalSlides, "next");
     }, AUTOPLAY_INTERVAL_MS);
 
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [isHovered, handleNext]);
-
-  // Touch Swipe Gesture Handlers (Mobile & Tablet)
-  const handleTouchStart = (e) => {
-    if (e.touches && e.touches.length > 0) {
-      setTouchStartPos({
-        x: e.touches[0].clientX,
-        y: e.touches[0].clientY
-      });
-      setTouchDeltaX(0);
-    }
-  };
-
-  const handleTouchMove = (e) => {
-    if (e.touches && e.touches.length > 0) {
-      const currentX = e.touches[0].clientX;
-      const currentY = e.touches[0].clientY;
-      const diffX = currentX - touchStartPos.x;
-      const diffY = currentY - touchStartPos.y;
-
-      // Only track if horizontal movement is dominant (avoids blocking vertical scrolling)
-      if (Math.abs(diffX) > Math.abs(diffY)) {
-        setTouchDeltaX(diffX);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
       }
-    }
-  };
+    };
+  }, [currentIndex, isHovered, isTabVisible, totalSlides, goToSlide]);
 
-  const handleTouchEnd = () => {
-    const minSwipeDistance = 45; // Threshold in pixels
-    if (touchDeltaX < -minSwipeDistance) {
-      // Swiped Left -> Next Slide
-      handleNext();
-    } else if (touchDeltaX > minSwipeDistance) {
-      // Swiped Right -> Previous Slide
-      handlePrev();
-    }
-    setTouchDeltaX(0);
-  };
-
-  // Safe navigation helper
   const navigateTo = (path) => {
     if (onNavigate) {
       onNavigate(path);
@@ -186,163 +225,177 @@ const HeroSlider = memo(function HeroSlider({ onNavigate }) {
     }
   };
 
+  const activeSlide = HERO_SLIDES[currentIndex];
+  const outgoingSlide = prevIndex !== null ? HERO_SLIDES[prevIndex] : null;
+
+  // Render individual slide text pane
+  const renderTextPane = (slide, stateClass, key) => (
+    <div className={`hero-text-pane ${stateClass}`} key={key}>
+      <div className="hero-badge-row">
+        <span className="hero-category-badge">{slide.badgeText}</span>
+        <span className="hero-warranty-badge">
+          <ShieldCheck size={13} /> {slide.warrantyTag}
+        </span>
+      </div>
+
+      <h1 className="hero-editorial-title">
+        {slide.titlePrefix}{" "}
+        <span className="hero-title-highlight">{slide.titleHighlight}</span>
+      </h1>
+
+      <p className="hero-editorial-desc">{slide.description}</p>
+
+      {/* Compact Promotional Banner for Special Offers */}
+      <div className="hero-compact-promo-bar">
+        <div className="promo-tag-pill">
+          <Tag size={12} /> {slide.offerBadge}
+        </div>
+        <div className="promo-text-wrap">
+          <span>{slide.offerDetail}</span>
+          <span className="promo-code-hint">
+            Use code <strong>TECHZONE10</strong> for extra 10% off
+          </span>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="hero-actions-row">
+        <button
+          type="button"
+          className="hero-btn-primary"
+          onClick={() => navigateTo(slide.primaryCtaLink)}
+          id={`hero-cta-primary-${slide.id}`}
+        >
+          {slide.primaryCtaText} <ArrowRight size={16} />
+        </button>
+
+        <button
+          type="button"
+          className="hero-btn-secondary"
+          onClick={() => navigateTo(slide.secondaryCtaLink)}
+          id={`hero-cta-secondary-${slide.id}`}
+        >
+          {slide.secondaryCtaText}
+        </button>
+      </div>
+    </div>
+  );
+
+  // Render individual slide visual pedestal
+  const renderVisualPane = (slide, stateClass, key) => (
+    <div className={`hero-slide-visual ${stateClass}`} key={key}>
+      <img
+        src={slide.image}
+        alt={slide.titleHighlight}
+        className="hero-featured-img"
+        onError={(e) => {
+          e.target.onerror = null;
+          e.target.src = FALLBACK_IMAGES[slide.fallbackKey] || FALLBACK_IMAGES.mobiles;
+        }}
+      />
+      <div className="hero-price-tag-card">
+        <span className="tag-starting-label">Price starting from</span>
+        <strong className="tag-price-value">{slide.startingPrice}</strong>
+        <span className="tag-delivery-note">
+          <Truck size={12} /> Free Express Delivery
+        </span>
+      </div>
+    </div>
+  );
+
   return (
     <section
-      className="hero-slider-container"
-      id="home-hero-slider"
-      aria-label="Promotional Carousel"
+      className="hero-editorial-section"
+      id="home-hero-editorial"
+      aria-label="Editorial Featured Electronics"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
     >
-      {/* Autoplay Paused Status Indicator */}
-      <div className="hero-pause-indicator" aria-live="polite">
-        <Pause size={12} /> Autoplay Paused
-      </div>
+      <div className="hero-editorial-container">
+        {/* Asymmetrical Layout Left / Main Feature Showcase */}
+        <div className="hero-main-card">
+          <div className="hero-main-inner">
+            {/* Slide Content Column */}
+            <div className="hero-content-col">
+              <div className="hero-text-stage">
+                {/* Active / Incoming Text */}
+                {renderTextPane(
+                  activeSlide,
+                  isTransitioning
+                    ? `incoming incoming-${direction}`
+                    : "active",
+                  `active-text-${activeSlide.id}`
+                )}
 
-      {/* Slider Track */}
-      <div
-        className="hero-slider-track"
-        style={{ transform: `translateX(-${currentIndex * 100}%)` }}
-      >
-        {HERO_SLIDES.map((slide, index) => {
-          const BadgeIcon = slide.badgeIcon;
-          const isActive = index === currentIndex;
+                {/* Outgoing Text during Transition */}
+                {isTransitioning && outgoingSlide && (
+                  renderTextPane(
+                    outgoingSlide,
+                    `outgoing outgoing-${direction}`,
+                    `outgoing-text-${outgoingSlide.id}`
+                  )
+                )}
+              </div>
 
-          return (
-            <article
-              key={slide.id}
-              className={`hero-slide ${slide.theme} ${isActive ? "active" : ""}`}
-              aria-hidden={!isActive}
-            >
-              {/* Atmospheric Background Layer with Fallback Handling */}
-              <img
-                src={slide.image}
-                alt=""
-                className="hero-slide-bg"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = FALLBACK_IMAGES[slide.fallbackKey] || FALLBACK_IMAGES.mobiles;
-                }}
-              />
-              <div className="hero-slide-ambient" />
-
-              {/* Main Content Layout */}
-              <div className="hero-slide-content-wrap">
-                {/* Left: Text, Tag & CTAs */}
-                <div className="hero-slide-text">
-                  <div className="hero-slide-badge">
-                    <BadgeIcon size={13} /> {slide.badgeText}
-                  </div>
-
-                  <h1 className="hero-slide-title">
-                    {slide.titlePrefix}
-                    <span>{slide.titleHighlight}</span>
-                  </h1>
-
-                  <p className="hero-slide-desc">{slide.description}</p>
-
-                  <div className="hero-slide-offer">
-                    <span className="hero-slide-offer-tag">{slide.offerBadge}</span>
-                    <span>{slide.offerDetail}</span>
-                  </div>
-
-                  <div className="hero-slide-actions">
+              {/* Slide Pagination & Arrows (Fixed navigation position, never shifts) */}
+              <div className="hero-nav-controls">
+                <div className="hero-dots-wrap">
+                  {HERO_SLIDES.map((slide, idx) => (
                     <button
+                      key={slide.id}
                       type="button"
-                      className="hero-btn-primary"
-                      onClick={() => navigateTo(slide.primaryCtaLink)}
-                      id={`hero-cta-primary-${index}`}
-                    >
-                      {slide.primaryCtaText} <ArrowRight size={17} />
-                    </button>
-
-                    <button
-                      type="button"
-                      className="hero-btn-secondary"
-                      onClick={() => navigateTo(slide.secondaryCtaLink)}
-                      id={`hero-cta-secondary-${index}`}
-                    >
-                      {slide.secondaryCtaText}
-                    </button>
-                  </div>
+                      className={`hero-dot ${idx === currentIndex ? "active" : ""}`}
+                      onClick={() => handleGoToSlide(idx)}
+                      aria-label={`Slide ${idx + 1}: ${slide.category}`}
+                    />
+                  ))}
                 </div>
 
-                {/* Right: Focused Visual Card */}
-                <div className="hero-slide-visual">
-                  <div className="hero-slide-img-wrap">
-                    <img
-                      src={slide.image}
-                      alt={slide.titleHighlight}
-                      className="hero-slide-img"
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = FALLBACK_IMAGES[slide.fallbackKey] || FALLBACK_IMAGES.mobiles;
-                      }}
-                    />
-                    <div className="hero-floating-badge">
-                      <Sparkles size={16} color="#38bdf8" />
-                      <div>
-                        <strong>{slide.offerBadge}</strong>
-                        <div>{slide.category} Exclusive</div>
-                      </div>
-                    </div>
-                  </div>
+                <div className="hero-arrows-wrap">
+                  <button
+                    type="button"
+                    className="hero-arrow-btn"
+                    onClick={handlePrev}
+                    aria-label="Previous featured banner"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                  <button
+                    type="button"
+                    className="hero-arrow-btn"
+                    onClick={handleNext}
+                    aria-label="Next featured banner"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
                 </div>
               </div>
-            </article>
-          );
-        })}
-      </div>
+            </div>
 
-      {/* Navigation Arrow Controls */}
-      <button
-        type="button"
-        className="hero-slider-nav-btn prev"
-        onClick={handlePrev}
-        aria-label="Previous promotional banner"
-        title="Previous banner"
-        id="hero-slider-prev-btn"
-      >
-        <ChevronLeft size={24} />
-      </button>
+            {/* Slide Product Imagery Column */}
+            <div className="hero-visual-col">
+              <div className="hero-img-pedestal">
+                {/* Active / Incoming Visual */}
+                {renderVisualPane(
+                  activeSlide,
+                  isTransitioning
+                    ? `incoming incoming-${direction}`
+                    : "active",
+                  `active-visual-${activeSlide.id}`
+                )}
 
-      <button
-        type="button"
-        className="hero-slider-nav-btn next"
-        onClick={handleNext}
-        aria-label="Next promotional banner"
-        title="Next banner"
-        id="hero-slider-next-btn"
-      >
-        <ChevronRight size={24} />
-      </button>
-
-      {/* Clickable Pagination Dots */}
-      <div
-        className="hero-slider-pagination"
-        role="tablist"
-        aria-label="Slider Pagination"
-      >
-        {HERO_SLIDES.map((slide, index) => {
-          const isActive = index === currentIndex;
-          return (
-            <button
-              type="button"
-              key={slide.id}
-              className={`hero-dot-btn ${isActive ? "active" : ""}`}
-              onClick={() => handleGoToSlide(index)}
-              role="tab"
-              aria-selected={isActive}
-              aria-label={`Go to slide ${index + 1}: ${slide.category}`}
-              id={`hero-slider-dot-${index}`}
-            >
-              <span className="hero-dot-indicator" />
-            </button>
-          );
-        })}
+                {/* Outgoing Visual during Transition */}
+                {isTransitioning && outgoingSlide && (
+                  renderVisualPane(
+                    outgoingSlide,
+                    `outgoing outgoing-${direction}`,
+                    `outgoing-visual-${outgoingSlide.id}`
+                  )
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );
