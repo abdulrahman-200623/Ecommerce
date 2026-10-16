@@ -59,16 +59,80 @@ import "./admin_add_page.css";
 import AdminFlashSalesTab from "./AdminFlashSalesTab";
 import AdminReturnsTab from "./AdminReturnsTab";
 
-// Preset high quality tech product images
+// Preset high quality tech product images (3 angles per product type)
 const PRESET_IMAGES = [
-  { label: "Smartphone", url: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=700&q=80" },
-  { label: "Laptop", url: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=700&q=80" },
-  { label: "Headphones", url: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=700&q=80" },
-  { label: "Smartwatch", url: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=700&q=80" },
-  { label: "Earbuds", url: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&w=700&q=80" },
-  { label: "Monitor", url: "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?auto=format&fit=crop&w=700&q=80" },
-  { label: "Fast Charger", url: "https://images.unsplash.com/photo-1593305841991-05c297ba4575?auto=format&fit=crop&w=700&q=80" },
-  { label: "Gaming Mouse", url: "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?auto=format&fit=crop&w=700&q=80" }
+  {
+    label: "Smartphone",
+    url: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=700&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?auto=format&fit=crop&w=700&q=80"
+    ]
+  },
+  {
+    label: "Laptop",
+    url: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=700&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=700&q=80"
+    ]
+  },
+  {
+    label: "Headphones",
+    url: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=700&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1484704849700-f032a568e944?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1546435770-a3e426bf472b?auto=format&fit=crop&w=700&q=80"
+    ]
+  },
+  {
+    label: "Smartwatch",
+    url: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=700&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=700&q=80"
+    ]
+  },
+  {
+    label: "Earbuds",
+    url: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&w=700&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1588423771073-b8903fbb85b5?auto=format&fit=crop&w=700&q=80"
+    ]
+  },
+  {
+    label: "Monitor",
+    url: "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?auto=format&fit=crop&w=700&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1593642702821-c8da6771f0c6?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1547082299-de196ea013d6?auto=format&fit=crop&w=700&q=80"
+    ]
+  },
+  {
+    label: "Fast Charger",
+    url: "https://images.unsplash.com/photo-1593305841991-05c297ba4575?auto=format&fit=crop&w=700&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1593305841991-05c297ba4575?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1622445268065-25a8942b7c63?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?auto=format&fit=crop&w=700&q=80"
+    ]
+  },
+  {
+    label: "Gaming Mouse",
+    url: "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?auto=format&fit=crop&w=700&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1586953208448-b95a79798f07?auto=format&fit=crop&w=700&q=80"
+    ]
+  }
 ];
 
 export default function AdminPanel({
@@ -190,6 +254,7 @@ export default function AdminPanel({
     reviews: 64,
     deliveryBadge: "Free Delivery",
     image: PRESET_IMAGES[0].url,
+    images: [...PRESET_IMAGES[0].images],
     description: "Premium flagship smartphone with dynamic AMOLED 2X display, quad telephoto camera system, and ultra-durable titanium frame."
   };
 
@@ -459,6 +524,13 @@ export default function AdminPanel({
       return;
     }
 
+    const cleanedImages = Array.isArray(addForm.images)
+      ? addForm.images.map((u) => String(u || "").trim()).filter(Boolean)
+      : [];
+    if (cleanedImages.length === 0 && addForm.image) {
+      cleanedImages.push(addForm.image.trim());
+    }
+
     const payload = {
       name: addForm.name.trim(),
       category: addForm.category.trim(),
@@ -468,7 +540,8 @@ export default function AdminPanel({
       stock: Number(addForm.stock) || 0,
       rating: Number(addForm.rating) || 4.5,
       reviews: Number(addForm.reviews) || 0,
-      image: addForm.image || PRESET_IMAGES[0].url,
+      image: cleanedImages[0] || addForm.image || PRESET_IMAGES[0].url,
+      images: cleanedImages.length > 0 ? cleanedImages : [addForm.image || PRESET_IMAGES[0].url],
       description: addForm.description || addForm.tagline || ""
     };
 
@@ -512,6 +585,7 @@ export default function AdminPanel({
       reviews: 10,
       deliveryBadge: "Free Delivery",
       image: PRESET_IMAGES[0].url,
+      images: [...PRESET_IMAGES[0].images],
       description: ""
     });
     setLastCreatedProduct(null);
@@ -519,6 +593,16 @@ export default function AdminPanel({
 
   // Open Edit Modal
   const handleOpenEdit = (p) => {
+    let currentImgs = [];
+    if (Array.isArray(p.images) && p.images.length > 0) {
+      currentImgs = p.images.map((x) => String(x || "").trim()).filter(Boolean);
+    } else if (p.image) {
+      currentImgs = [p.image.trim()];
+    }
+    const slot1 = currentImgs[0] || p.image || PRESET_IMAGES[0].url;
+    const slot2 = currentImgs[1] || "";
+    const slot3 = currentImgs[2] || "";
+
     setEditingProduct({
       _id: p._id,
       name: p.name || "",
@@ -529,7 +613,8 @@ export default function AdminPanel({
       stock: p.stock ?? 10,
       rating: p.rating ?? 4.5,
       reviews: p.reviews ?? 0,
-      image: p.image || PRESET_IMAGES[0].url,
+      image: slot1,
+      images: [slot1, slot2, slot3],
       description: p.description || ""
     });
     setIsEditModalOpen(true);
@@ -547,6 +632,13 @@ export default function AdminPanel({
       return;
     }
 
+    const cleanedImages = Array.isArray(editingProduct.images)
+      ? editingProduct.images.map((u) => String(u || "").trim()).filter(Boolean)
+      : [];
+    if (cleanedImages.length === 0 && editingProduct.image) {
+      cleanedImages.push(editingProduct.image.trim());
+    }
+
     const payload = {
       ...editingProduct,
       name: editingProduct.name.trim(),
@@ -556,7 +648,9 @@ export default function AdminPanel({
       discount: Number(editingProduct.discount) || 0,
       stock: Number(editingProduct.stock) || 0,
       rating: Number(editingProduct.rating) || 4.5,
-      reviews: Number(editingProduct.reviews) || 0
+      reviews: Number(editingProduct.reviews) || 0,
+      image: cleanedImages[0] || editingProduct.image || PRESET_IMAGES[0].url,
+      images: cleanedImages
     };
 
     const targetId = editingProduct._id;
@@ -1358,33 +1452,136 @@ export default function AdminPanel({
                   </div>
 
                   {/* Section 4: Image & Presets */}
+                  {/* Section 4: 3 Images & Live Previews */}
                   <div className="section-card">
                     <div className="section-header">
-                      <h3><ImageIcon size={17} color="#a78bfa" /> Product Media & Image</h3>
-                      <span>High-res photo URL or preset</span>
+                      <h3><ImageIcon size={17} color="#a78bfa" /> Product Media (3 Gallery Images)</h3>
+                      <span>Manage all 3 product photos with live previews</span>
                     </div>
 
-                    <div className="admin-form-group">
-                      <label>Image URL</label>
-                      <input
-                        className="admin-input"
-                        placeholder="https://images.unsplash.com/..."
-                        value={addForm.image}
-                        onChange={e => setAddForm({ ...addForm, image: e.target.value })}
-                      />
+                    <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginTop: "12px" }}>
+                      {[0, 1, 2].map((idx) => {
+                        const currentUrl = (addForm.images && addForm.images[idx]) || (idx === 0 ? addForm.image : "");
+                        const slotLabels = [
+                          "Image 1 (Primary Front Display) *",
+                          "Image 2 (Angle / Profile View)",
+                          "Image 3 (Feature / Lifestyle Detail)"
+                        ];
+                        return (
+                          <div
+                            key={idx}
+                            style={{
+                              background: "rgba(255, 255, 255, 0.02)",
+                              border: "1px solid var(--admin-border, #333d47)",
+                              borderRadius: "10px",
+                              padding: "12px"
+                            }}
+                          >
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                              <label style={{ fontSize: "12px", fontWeight: "600", color: "#f8fafc", display: "flex", alignItems: "center", gap: "6px" }}>
+                                <span
+                                  style={{
+                                    background: idx === 0 ? "#2563eb" : "#475569",
+                                    color: "#fff",
+                                    fontSize: "10px",
+                                    padding: "2px 6px",
+                                    borderRadius: "4px"
+                                  }}
+                                >
+                                  #{idx + 1}
+                                </span>
+                                {slotLabels[idx]}
+                              </label>
+                              {currentUrl && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const next = [...(addForm.images || ["", "", ""])];
+                                    next[idx] = "";
+                                    setAddForm({ ...addForm, images: next, image: next[0] || "" });
+                                  }}
+                                  style={{
+                                    background: "transparent",
+                                    border: "none",
+                                    color: "#f87171",
+                                    fontSize: "11px",
+                                    cursor: "pointer"
+                                  }}
+                                >
+                                  Clear
+                                </button>
+                              )}
+                            </div>
+
+                            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                              <div
+                                style={{
+                                  width: "60px",
+                                  height: "60px",
+                                  borderRadius: "8px",
+                                  background: "#0b0f17",
+                                  border: "1px solid #334155",
+                                  overflow: "hidden",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  flexShrink: 0
+                                }}
+                              >
+                                {currentUrl ? (
+                                  <img
+                                    key={currentUrl}
+                                    src={currentUrl}
+                                    alt={`Preview ${idx + 1}`}
+                                    style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                                    onError={(e) => { e.target.style.display = "none"; }}
+                                  />
+                                ) : (
+                                  <ImageIcon size={20} color="#475569" />
+                                )}
+                              </div>
+
+                              <input
+                                className="admin-input"
+                                placeholder={`Paste URL for image #${idx + 1}...`}
+                                value={currentUrl}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  const next = [...(addForm.images || ["", "", ""])];
+                                  next[idx] = val;
+                                  setAddForm({
+                                    ...addForm,
+                                    images: next,
+                                    image: next[0] || val
+                                  });
+                                }}
+                                style={{ flex: 1 }}
+                                id={`add-product-image-input-${idx}`}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
 
-                    <div className="admin-form-group">
-                      <label style={{ fontSize: "11px" }}>Quick 1-Click High-Res Presets:</label>
+                    <div className="admin-form-group" style={{ marginTop: "16px" }}>
+                      <label style={{ fontSize: "11px" }}>Quick 1-Click High-Res Presets (Sets all 3 Images):</label>
                       <div className="image-presets">
                         {PRESET_IMAGES.map((preset, idx) => (
                           <button
                             key={idx}
                             type="button"
                             className="image-preset-chip"
-                            onClick={() => setAddForm({ ...addForm, image: preset.url })}
+                            onClick={() => {
+                              const imgs = preset.images || [preset.url, preset.url, preset.url];
+                              setAddForm({
+                                ...addForm,
+                                image: imgs[0],
+                                images: [...imgs]
+                              });
+                            }}
                           >
-                            {preset.label}
+                            {preset.label} (3-Pack)
                           </button>
                         ))}
                       </div>
@@ -1946,7 +2143,35 @@ export default function AdminPanel({
                         <tr key={p._id}>
                           <td>
                             <div className="product-row-info">
-                              <img src={p.image} alt={p.name} className="product-thumb" />
+                              <div style={{ position: "relative", flexShrink: 0 }}>
+                                <img
+                                  src={(p.images && p.images[0]) || p.image}
+                                  alt={p.name}
+                                  className="product-thumb"
+                                  onError={(e) => {
+                                    if (p.image && e.target.src !== p.image) e.target.src = p.image;
+                                  }}
+                                />
+                                {Array.isArray(p.images) && p.images.length > 1 && (
+                                  <span
+                                    style={{
+                                      position: "absolute",
+                                      bottom: "-2px",
+                                      right: "-2px",
+                                      background: "#2563eb",
+                                      color: "#fff",
+                                      fontSize: "9px",
+                                      fontWeight: 700,
+                                      padding: "1px 5px",
+                                      borderRadius: "4px",
+                                      border: "1px solid #1e293b"
+                                    }}
+                                    title={`${p.images.length} photos in gallery`}
+                                  >
+                                    {p.images.length}
+                                  </span>
+                                )}
+                              </div>
                               <div className="product-title-group">
                                 <h4>{p.name}</h4>
                                 <p>{p.description}</p>
@@ -3074,12 +3299,109 @@ export default function AdminPanel({
                 </div>
 
                 <div className="admin-form-group">
-                  <label>Image URL</label>
-                  <input
-                    className="admin-input"
-                    value={editingProduct.image}
-                    onChange={e => setEditingProduct({ ...editingProduct, image: e.target.value })}
-                  />
+                  <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span>Product Gallery Images (3 Images)</span>
+                    <span style={{ fontSize: "11px", color: "#94a3b8" }}>Replace any image individually</span>
+                  </label>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "8px" }}>
+                    {[0, 1, 2].map((slotIdx) => {
+                      const imgVal = (editingProduct.images && editingProduct.images[slotIdx]) || (slotIdx === 0 ? editingProduct.image : "");
+                      const slotLabels = [
+                        "Image 1 (Primary Front Display) *",
+                        "Image 2 (Angle / Profile View)",
+                        "Image 3 (Feature / Lifestyle Detail)"
+                      ];
+                      return (
+                        <div
+                          key={slotIdx}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "10px",
+                            background: "rgba(255, 255, 255, 0.03)",
+                            padding: "8px 10px",
+                            borderRadius: "8px",
+                            border: "1px solid #334155"
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: "48px",
+                              height: "48px",
+                              borderRadius: "6px",
+                              background: "#090d16",
+                              border: "1px solid #475569",
+                              overflow: "hidden",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flexShrink: 0
+                            }}
+                          >
+                            {imgVal ? (
+                              <img
+                                key={imgVal}
+                                src={imgVal}
+                                alt={`Slot ${slotIdx + 1}`}
+                                style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                                onError={(e) => { e.target.style.display = "none"; }}
+                              />
+                            ) : (
+                              <span style={{ fontSize: "10px", color: "#64748b" }}>#{slotIdx + 1}</span>
+                            )}
+                          </div>
+
+                          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "3px" }}>
+                            <span style={{ fontSize: "11px", color: "#cbd5e1", fontWeight: "600" }}>{slotLabels[slotIdx]}</span>
+                            <input
+                              className="admin-input"
+                              placeholder={`Image URL #${slotIdx + 1}...`}
+                              value={imgVal}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                const nextImgs = [...(editingProduct.images || ["", "", ""])];
+                                nextImgs[slotIdx] = val;
+                                setEditingProduct({
+                                  ...editingProduct,
+                                  images: nextImgs,
+                                  image: nextImgs[0] || val
+                                });
+                              }}
+                              style={{ height: "34px", fontSize: "12px", padding: "4px 8px" }}
+                              id={`edit-product-image-input-${slotIdx}`}
+                            />
+                          </div>
+
+                          {imgVal && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const nextImgs = [...(editingProduct.images || ["", "", ""])];
+                                nextImgs[slotIdx] = "";
+                                setEditingProduct({
+                                  ...editingProduct,
+                                  images: nextImgs,
+                                  image: nextImgs[0] || ""
+                                });
+                              }}
+                              style={{
+                                background: "transparent",
+                                border: "none",
+                                color: "#f87171",
+                                cursor: "pointer",
+                                padding: "4px",
+                                fontSize: "11px"
+                              }}
+                              title="Clear this image slot"
+                            >
+                              Clear
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 <div className="admin-form-group">

@@ -141,8 +141,14 @@ router.get("/", async (req, res) => {
     else if (sort === "stock-asc") sortOptions = { stock: 1 };
     else if (sort === "stock-desc") sortOptions = { stock: -1 };
 
-    const products = await Product.find(filter).sort(sortOptions);
-    res.json(products);
+    const products = await Product.find(filter).sort(sortOptions).lean();
+    const normalized = products.map((p) => {
+      if ((!p.images || p.images.length === 0) && p.image) {
+        return { ...p, images: [p.image] };
+      }
+      return p;
+    });
+    res.json(normalized);
   } catch (e) {
     res.status(500).json({ message: e.message });
   }
@@ -256,14 +262,20 @@ router.get("/:id", async (req, res) => {
     const id = req.params.id;
     let product = null;
     if (mongoose.Types.ObjectId.isValid(id)) {
-      product = await Product.findById(id);
+      product = await Product.findById(id).lean();
     }
     if (!product) {
       product = await Product.findOne({
         $or: [{ productId: id }, { name: id }]
-      });
+      }).lean();
     }
     if (!product) return res.status(404).json({ message: "Product not found" });
+
+    // Fallback: ensure images array exists and has at least product.image
+    if ((!product.images || product.images.length === 0) && product.image) {
+      product.images = [product.image];
+    }
+
     res.json(product);
   } catch (e) {
     res.status(500).json({ message: e.message });
@@ -282,6 +294,20 @@ router.post("/", adminMiddleware, requirePermission("products_manage"), async (r
     }
     data.name = String(data.name).trim();
     data.category = String(data.category).trim();
+
+    // Sanitize and sync images
+    if (Array.isArray(data.images) && data.images.length > 0) {
+      data.images = data.images.map((u) => String(u).trim()).filter(Boolean);
+      if (!data.image || !data.images.includes(data.image)) {
+        data.image = data.images[0] || "";
+      }
+    } else if (data.image) {
+      data.image = String(data.image).trim();
+      data.images = [data.image];
+    } else {
+      data.images = [];
+    }
+
     const created = await Product.create(data);
 
     logActivity({
@@ -333,6 +359,18 @@ router.put(
         }
         data.category = String(data.category).trim();
       }
+
+      // Sanitize and sync images on update
+      if (Array.isArray(data.images)) {
+        data.images = data.images.map((u) => String(u).trim()).filter(Boolean);
+        if (data.images.length > 0 && (!data.image || !data.images.includes(data.image))) {
+          data.image = data.images[0];
+        }
+      } else if (data.image && (!data.images || data.images.length === 0)) {
+        data.image = String(data.image).trim();
+        data.images = [data.image];
+      }
+
       const updated = await Product.findByIdAndUpdate(req.params.id, data, { new: true });
       if (!updated) return res.status(404).json({ message: "Product not found" });
 

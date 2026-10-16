@@ -52,9 +52,14 @@ export default function ProductCard({
       
       <div className="pic">
         <img
-          src={p.image || "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500"}
+          src={(p.images && p.images[0]) || p.image || "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500"}
           alt={p.name}
           loading="lazy"
+          onError={(e) => {
+            if (p.image && e.target.src !== p.image) {
+              e.target.src = p.image;
+            }
+          }}
         />
       </div>
 

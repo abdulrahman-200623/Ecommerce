@@ -3444,3 +3444,369 @@ body,
 [data-theme="admin"] {
   color-scheme: dark;
 }
+
+/* =========================================================
+   TECHZONE PRODUCT IMAGE GALLERY & ZOOM LIGHTBOX
+   ========================================================= */
+.tz-gallery-container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+.tz-gallery-main-stage {
+  position: relative;
+  width: 100%;
+  height: 420px;
+  background: var(--tz-bg-secondary, #131821);
+  border: 1px solid var(--tz-border-subtle, #27313f);
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: crosshair;
+  user-select: none;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.tz-gallery-main-stage:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+.tz-gallery-main-img {
+  max-width: 90%;
+  max-height: 85%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  transition: transform 0.12s ease-out;
+  pointer-events: none;
+  display: block;
+}
+
+.tz-gallery-top-bar {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.tz-gallery-counter-pill {
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+}
+
+.tz-gallery-zoom-trigger {
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: all 0.2s ease;
+}
+
+.tz-gallery-zoom-trigger:hover {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: #38bdf8;
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.tz-gallery-nav-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.82);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease, background 0.2s ease, transform 0.2s ease;
+  z-index: 6;
+}
+
+.tz-gallery-main-stage:hover .tz-gallery-nav-arrow {
+  opacity: 1;
+}
+
+.tz-gallery-nav-arrow.arrow-left {
+  left: 14px;
+}
+
+.tz-gallery-nav-arrow.arrow-right {
+  right: 14px;
+}
+
+.tz-gallery-nav-arrow:hover {
+  background: #2563eb;
+  border-color: #38bdf8;
+  color: #fff;
+  transform: translateY(-50%) scale(1.08);
+}
+
+/* Gallery Thumbnails Strip */
+.tz-gallery-thumbnails {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: flex-start;
+  overflow-x: auto;
+  padding: 4px 2px;
+  scrollbar-width: thin;
+}
+
+.tz-gallery-thumb {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  border-radius: 12px;
+  background: var(--tz-bg-secondary, #131821);
+  border: 2px solid var(--tz-border-subtle, #27313f);
+  padding: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.tz-gallery-thumb:hover {
+  border-color: #38bdf8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(56, 189, 248, 0.25);
+}
+
+.tz-gallery-thumb.active {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.4), 0 6px 18px rgba(56, 189, 248, 0.35);
+  transform: translateY(-2px);
+  background: rgba(56, 189, 248, 0.05);
+}
+
+.tz-gallery-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.tz-thumb-badge {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  background: rgba(15, 23, 42, 0.85);
+  color: #94a3b8;
+  padding: 1px 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tz-gallery-thumb.active .tz-thumb-badge {
+  background: #38bdf8;
+  color: #0f172a;
+}
+
+/* Lightbox Modal */
+.tz-lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 8, 14, 0.88);
+  backdrop-filter: blur(12px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: tzFadeIn 0.2s ease-out;
+}
+
+@keyframes tzFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.tz-lightbox-modal {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 20px;
+  max-width: 900px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+}
+
+.tz-lightbox-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid #1e293b;
+}
+
+.tz-lightbox-title {
+  display: flex;
+  flex-direction: column;
+}
+
+.tz-lightbox-title strong {
+  color: #f8fafc;
+  font-size: 17px;
+}
+
+.tz-lightbox-title span {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.tz-lightbox-close {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.tz-lightbox-close:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+.tz-lightbox-stage {
+  position: relative;
+  flex: 1;
+  min-height: 380px;
+  max-height: 520px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #090d16;
+}
+
+.tz-lightbox-img {
+  max-width: 100%;
+  max-height: 480px;
+  object-fit: contain;
+}
+
+.tz-lightbox-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tz-lightbox-arrow.arrow-prev {
+  left: 18px;
+}
+
+.tz-lightbox-arrow.arrow-next {
+  right: 18px;
+}
+
+.tz-lightbox-arrow:hover {
+  background: #38bdf8;
+  color: #0f172a;
+  transform: translateY(-50%) scale(1.1);
+}
+
+.tz-lightbox-thumbs {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  padding: 14px 20px;
+  background: #0b1120;
+  border-top: 1px solid #1e293b;
+}
+
+.tz-lightbox-thumb {
+  width: 64px;
+  height: 64px;
+  border-radius: 10px;
+  border: 2px solid #334155;
+  background: #1e293b;
+  padding: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tz-lightbox-thumb.active {
+  border-color: #38bdf8;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+}
+
+.tz-lightbox-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Responsive Product Details Gallery */
+@media (max-width: 860px) {
+  .productDetail.fullDetail {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding: 20px;
+  }
+
+  .tz-gallery-main-stage {
+    height: 320px;
+  }
+
+  .tz-gallery-thumb {
+    width: 68px;
+    height: 68px;
+  }
+}
+
