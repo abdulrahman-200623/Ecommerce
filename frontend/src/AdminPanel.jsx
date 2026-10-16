@@ -36,22 +36,103 @@ import {
   Check,
   Tag,
   DollarSign,
-  Image as ImageIcon
+  Image as ImageIcon,
+  MessageSquare,
+  ThumbsUp,
+  Zap,
+  RotateCcw,
+  Smartphone,
+  Laptop,
+  Headphones,
+  Watch,
+  Sparkles,
+  Monitor,
+  Gamepad2,
+  FolderPlus,
+  ArrowUpDown,
+  LogOut,
+  ShieldAlert
 } from "lucide-react";
 import axios from "axios";
 import "./admin.css";
 import "./admin_add_page.css";
+import AdminFlashSalesTab from "./AdminFlashSalesTab";
+import AdminReturnsTab from "./AdminReturnsTab";
 
-// Preset high quality tech product images
+// Preset high quality tech product images (3 angles per product type)
 const PRESET_IMAGES = [
-  { label: "Smartphone", url: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=700&q=80" },
-  { label: "Laptop", url: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=700&q=80" },
-  { label: "Headphones", url: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=700&q=80" },
-  { label: "Smartwatch", url: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=700&q=80" },
-  { label: "Earbuds", url: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&w=700&q=80" },
-  { label: "Monitor", url: "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?auto=format&fit=crop&w=700&q=80" },
-  { label: "Fast Charger", url: "https://images.unsplash.com/photo-1593305841991-05c297ba4575?auto=format&fit=crop&w=700&q=80" },
-  { label: "Gaming Mouse", url: "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?auto=format&fit=crop&w=700&q=80" }
+  {
+    label: "Smartphone",
+    url: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=700&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?auto=format&fit=crop&w=700&q=80"
+    ]
+  },
+  {
+    label: "Laptop",
+    url: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=700&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=700&q=80"
+    ]
+  },
+  {
+    label: "Headphones",
+    url: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=700&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1484704849700-f032a568e944?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1546435770-a3e426bf472b?auto=format&fit=crop&w=700&q=80"
+    ]
+  },
+  {
+    label: "Smartwatch",
+    url: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=700&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=700&q=80"
+    ]
+  },
+  {
+    label: "Earbuds",
+    url: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&w=700&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1588423771073-b8903fbb85b5?auto=format&fit=crop&w=700&q=80"
+    ]
+  },
+  {
+    label: "Monitor",
+    url: "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?auto=format&fit=crop&w=700&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1593642702821-c8da6771f0c6?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1547082299-de196ea013d6?auto=format&fit=crop&w=700&q=80"
+    ]
+  },
+  {
+    label: "Fast Charger",
+    url: "https://images.unsplash.com/photo-1593305841991-05c297ba4575?auto=format&fit=crop&w=700&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1593305841991-05c297ba4575?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1622445268065-25a8942b7c63?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?auto=format&fit=crop&w=700&q=80"
+    ]
+  },
+  {
+    label: "Gaming Mouse",
+    url: "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?auto=format&fit=crop&w=700&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1586953208448-b95a79798f07?auto=format&fit=crop&w=700&q=80"
+    ]
+  }
 ];
 
 export default function AdminPanel({
@@ -60,14 +141,55 @@ export default function AdminPanel({
   orders,
   setOrders,
   onBackToStore,
-  onViewProduct
+  onViewProduct,
+  token,
+  user,
+  adminUser,
+  adminToken,
+  onAdminLogout,
+  onLogout
 }) {
+  const effectiveToken = adminToken || token || localStorage.getItem("techzone_admin_token") || "";
+  const effectiveAdmin = adminUser || (() => {
+    try {
+      const u = localStorage.getItem("techzone_admin_user");
+      return u ? JSON.parse(u) : null;
+    } catch(e) { return null; }
+  })() || user;
+
+  const hasPerm = (permKey) => {
+    if (!effectiveAdmin) return true;
+    if (effectiveAdmin.role === "superadmin" || effectiveAdmin.isSuperAdmin) return true;
+    const perms = Array.isArray(effectiveAdmin.permissions) ? effectiveAdmin.permissions : [];
+    if (perms.length === 0 && effectiveAdmin.role === "admin") {
+      // Default fallback if no specific permissions recorded
+      return true;
+    }
+    if (perms.includes("*")) return true;
+    return perms.includes(permKey);
+  };
+
+  const getAdminConfig = (extra = {}) => {
+    const headers = {
+      "x-admin-key": "techzone-admin-secret",
+      ...(effectiveToken ? { Authorization: `Bearer ${effectiveToken}` } : {}),
+      ...(extra.headers || {})
+    };
+    return {
+      ...extra,
+      headers,
+      withCredentials: true
+    };
+  };
   // Determine initial tab based on current URL path
   const getInitialTab = () => {
     const p = window.location.pathname;
     if (p === "/admin/add-product") return "add-product";
     if (p === "/admin/products") return "products";
     if (p === "/admin/orders") return "orders";
+    if (p === "/admin/reviews") return "reviews";
+    if (p === "/admin/flash-sales") return "flash-sales";
+    if (p === "/admin/returns") return "returns";
     if (p === "/admin/analytics") return "analytics";
     if (p === "/admin/customers") return "customers";
     if (p === "/admin/settings") return "settings";
@@ -76,11 +198,43 @@ export default function AdminPanel({
 
   const [activeTab, setActiveTab] = useState(getInitialTab);
   const [searchQuery, setSearchQuery] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("All");
+  const [categoryFilter, setCategoryFilter] = useState(() => {
+    try {
+      return new URLSearchParams(window.location.search).get("category") || "All";
+    } catch (e) {
+      return "All";
+    }
+  });
   const [stockFilter, setStockFilter] = useState("All");
+  const [productSort, setProductSort] = useState("newest");
   const [orderStatusFilter, setOrderStatusFilter] = useState("All");
   const [backendOnline, setBackendOnline] = useState(false);
   const [toast, setToast] = useState(null);
+  const [returnsPendingCount, setReturnsPendingCount] = useState(0);
+
+  // Category Management Modal State
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [renamingCategory, setRenamingCategory] = useState(null); // { oldName, newName }
+  const [deletingCategory, setDeletingCategory] = useState(null); // { name, count }
+  const [categoryReassignTarget, setCategoryReassignTarget] = useState("");
+
+  // Admin Reviews Moderation State
+  const [adminReviews, setAdminReviews] = useState([]);
+  const [adminReviewsLoading, setAdminReviewsLoading] = useState(false);
+  const [adminReviewSearch, setAdminReviewSearch] = useState("");
+  const [adminReviewRatingFilter, setAdminReviewRatingFilter] = useState("All");
+  const [adminReviewProductFilter, setAdminReviewProductFilter] = useState("All");
+  const [adminReviewSort, setAdminReviewSort] = useState("recent");
+  const [adminReviewPage, setAdminReviewPage] = useState(1);
+  const [adminReviewTotalPages, setAdminReviewTotalPages] = useState(1);
+  const [adminReviewsMetrics, setAdminReviewsMetrics] = useState({
+    totalReviews: 0,
+    averageRating: 0,
+    fiveStarReviews: 0,
+    criticalReviews: 0,
+    verifiedPurchases: 0
+  });
 
   // Modal states for edit & order details
   const [editingProduct, setEditingProduct] = useState(null);
@@ -100,6 +254,7 @@ export default function AdminPanel({
     reviews: 64,
     deliveryBadge: "Free Delivery",
     image: PRESET_IMAGES[0].url,
+    images: [...PRESET_IMAGES[0].images],
     description: "Premium flagship smartphone with dynamic AMOLED 2X display, quad telephoto camera system, and ultra-durable titanium frame."
   };
 
@@ -140,13 +295,178 @@ export default function AdminPanel({
   useEffect(() => {
     checkBackend();
     const interval = setInterval(checkBackend, 15000);
+
+    // Fetch returns pending count for sidebar badge
+    axios
+      .get("http://localhost:5000/api/returns/admin/all", {
+        headers: { "x-admin-key": "techzone-admin-secret" }
+      })
+      .then((r) => {
+        if (r.data?.metrics) {
+          setReturnsPendingCount(r.data.metrics.pending || 0);
+        }
+      })
+      .catch(() => {});
+
     return () => clearInterval(interval);
   }, []);
 
-  // Categories list
+  // Base categories guaranteed in TechZone
+  const BASE_CATEGORIES = [
+    "Mobiles",
+    "Accessories",
+    "Laptops",
+    "Smartwatches",
+    "Earbuds",
+    "Monitors",
+    "Gaming",
+    "Headphones"
+  ];
+
+  // Dynamic unique categories combining base categories and any existing product categories
   const categories = useMemo(() => {
-    return ["All", ...new Set(products.map(p => p.category))];
+    const fromProducts = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
+    const merged = ["All", ...BASE_CATEGORIES];
+    for (const c of fromProducts) {
+      if (!merged.some(m => m.toLowerCase() === c.toLowerCase())) {
+        merged.push(c);
+      }
+    }
+    return merged;
   }, [products]);
+
+  // Dynamic category counts calculated directly from current product data
+  const categoryCounts = useMemo(() => {
+    const counts = { All: products.length };
+    products.forEach(p => {
+      if (p.category) {
+        counts[p.category] = (counts[p.category] || 0) + 1;
+      }
+    });
+    BASE_CATEGORIES.forEach(c => {
+      if (counts[c] === undefined) counts[c] = 0;
+    });
+    return counts;
+  }, [products]);
+
+  // Category Icon Resolver
+  const getCategoryIcon = (name) => {
+    const lower = (name || "").toLowerCase();
+    if (lower === "all") return Package;
+    if (lower.includes("mobile") || lower.includes("phone")) return Smartphone;
+    if (lower.includes("laptop")) return Laptop;
+    if (lower.includes("headphone")) return Headphones;
+    if (lower.includes("watch")) return Watch;
+    if (lower.includes("earbud")) return Sparkles;
+    if (lower.includes("monitor")) return Monitor;
+    if (lower.includes("gaming") || lower.includes("game")) return Gamepad2;
+    if (lower.includes("accessor")) return Layers;
+    return Tag;
+  };
+
+  // Sync category selection with URL search parameters
+  const handleCategorySelect = (cat) => {
+    setCategoryFilter(cat);
+    try {
+      const url = new URL(window.location.href);
+      if (cat === "All") {
+        url.searchParams.delete("category");
+      } else {
+        url.searchParams.set("category", cat);
+      }
+      window.history.replaceState({}, "", url.toString());
+    } catch (e) {}
+  };
+
+  // Category Management Handlers
+  const handleCreateCategory = (e) => {
+    if (e) e.preventDefault();
+    const trimmed = newCategoryName.trim();
+    if (!trimmed) {
+      showToast("Please enter a category name", "info");
+      return;
+    }
+    if (categories.some(c => c.toLowerCase() === trimmed.toLowerCase())) {
+      showToast(`Category "${trimmed}" already exists`, "info");
+      return;
+    }
+    setAddForm(prev => ({ ...prev, category: trimmed }));
+    handleCategorySelect(trimmed);
+    setNewCategoryName("");
+    setIsCategoryModalOpen(false);
+    showToast(`Category "${trimmed}" ready! You can now add products to it.`);
+  };
+
+  const handleRenameCategory = async (oldName, newName) => {
+    const trimmed = (newName || "").trim();
+    if (!trimmed || trimmed.toLowerCase() === oldName.toLowerCase()) {
+      setRenamingCategory(null);
+      return;
+    }
+    try {
+      if (backendOnline) {
+        await axios.put("http://localhost:5000/api/products/categories/rename", {
+          oldName,
+          newName: trimmed
+        }, getAdminConfig());
+      }
+      const updatedList = products.map(p =>
+        p.category && p.category.toLowerCase() === oldName.toLowerCase()
+          ? { ...p, category: trimmed }
+          : p
+      );
+      setProducts(updatedList);
+      localStorage.setItem("techzone_products", JSON.stringify(updatedList));
+      if (categoryFilter.toLowerCase() === oldName.toLowerCase()) {
+        handleCategorySelect(trimmed);
+      }
+      showToast(`Renamed "${oldName}" to "${trimmed}" successfully!`);
+    } catch (err) {
+      showToast(err.response?.data?.message || "Failed to rename category", "error");
+    }
+    setRenamingCategory(null);
+  };
+
+  const handleDeleteCategory = async (catName, reassignTo) => {
+    const count = categoryCounts[catName] || 0;
+    if (count > 0 && (!reassignTo || !reassignTo.trim())) {
+      setDeletingCategory({ name: catName, count });
+      return;
+    }
+
+    try {
+      if (backendOnline) {
+        await axios.delete(`http://localhost:5000/api/products/categories/${encodeURIComponent(catName)}`, getAdminConfig({
+          data: { reassignTo }
+        }));
+      }
+      let updatedList;
+      if (count > 0 && reassignTo) {
+        updatedList = products.map(p =>
+          p.category && p.category.toLowerCase() === catName.toLowerCase()
+            ? { ...p, category: reassignTo }
+            : p
+        );
+      } else {
+        updatedList = products.filter(
+          p => !(p.category && p.category.toLowerCase() === catName.toLowerCase())
+        );
+      }
+      setProducts(updatedList);
+      localStorage.setItem("techzone_products", JSON.stringify(updatedList));
+      if (categoryFilter.toLowerCase() === catName.toLowerCase()) {
+        handleCategorySelect("All");
+      }
+      showToast(
+        count > 0
+          ? `Reassigned ${count} products to "${reassignTo}" and removed "${catName}".`
+          : `Removed category "${catName}".`
+      );
+    } catch (err) {
+      showToast(err.response?.data?.message || "Failed to delete category", "error");
+    }
+    setDeletingCategory(null);
+  };
 
   // Calculations for KPIs
   const totalRevenue = useMemo(() => {
@@ -199,40 +519,56 @@ export default function AdminPanel({
       showToast("Please provide product name and price", "info");
       return;
     }
+    if (!addForm.category || !addForm.category.trim()) {
+      showToast("Please select a valid category", "info");
+      return;
+    }
+
+    const cleanedImages = Array.isArray(addForm.images)
+      ? addForm.images.map((u) => String(u || "").trim()).filter(Boolean)
+      : [];
+    if (cleanedImages.length === 0 && addForm.image) {
+      cleanedImages.push(addForm.image.trim());
+    }
 
     const payload = {
       name: addForm.name.trim(),
-      category: addForm.category,
+      category: addForm.category.trim(),
       price: Number(addForm.price),
       originalPrice: Number(addForm.originalPrice) || Number(addForm.price),
       discount: Number(addForm.discount) || 0,
       stock: Number(addForm.stock) || 0,
       rating: Number(addForm.rating) || 4.5,
       reviews: Number(addForm.reviews) || 0,
-      image: addForm.image || PRESET_IMAGES[0].url,
+      image: cleanedImages[0] || addForm.image || PRESET_IMAGES[0].url,
+      images: cleanedImages.length > 0 ? cleanedImages : [addForm.image || PRESET_IMAGES[0].url],
       description: addForm.description || addForm.tagline || ""
     };
 
-    const newId = "prod_" + Date.now();
-    const newProduct = { ...payload, _id: newId, createdAt: new Date().toISOString() };
-    const updatedList = [newProduct, ...products];
-    setProducts(updatedList);
-    localStorage.setItem("techzone_products", JSON.stringify(updatedList));
-
+    let createdProduct = null;
     if (backendOnline) {
       try {
-        const res = await axios.post("http://localhost:5000/api/products", payload);
+        const res = await axios.post("http://localhost:5000/api/products", payload, getAdminConfig());
         if (res.data?._id) {
-          newProduct._id = res.data._id;
-          setProducts([res.data, ...products]);
+          createdProduct = res.data;
         }
       } catch (err) {
-        console.warn("Backend create failed, saved locally", err);
+        console.warn("Backend create failed, saving locally", err);
+        showToast(err.response?.data?.message || "Backend error creating product", "error");
       }
     }
 
-    setLastCreatedProduct(newProduct);
-    showToast(`"${payload.name}" published to store successfully!`);
+    if (!createdProduct) {
+      const newId = "prod_" + Date.now();
+      createdProduct = { ...payload, _id: newId, createdAt: new Date().toISOString() };
+    }
+
+    const updatedList = [createdProduct, ...products.filter(p => p._id !== createdProduct._id)];
+    setProducts(updatedList);
+    localStorage.setItem("techzone_products", JSON.stringify(updatedList));
+
+    setLastCreatedProduct(createdProduct);
+    showToast(`"${payload.name}" published to ${payload.category} successfully!`);
   };
 
   // Quick reset add product form
@@ -249,6 +585,7 @@ export default function AdminPanel({
       reviews: 10,
       deliveryBadge: "Free Delivery",
       image: PRESET_IMAGES[0].url,
+      images: [...PRESET_IMAGES[0].images],
       description: ""
     });
     setLastCreatedProduct(null);
@@ -256,6 +593,16 @@ export default function AdminPanel({
 
   // Open Edit Modal
   const handleOpenEdit = (p) => {
+    let currentImgs = [];
+    if (Array.isArray(p.images) && p.images.length > 0) {
+      currentImgs = p.images.map((x) => String(x || "").trim()).filter(Boolean);
+    } else if (p.image) {
+      currentImgs = [p.image.trim()];
+    }
+    const slot1 = currentImgs[0] || p.image || PRESET_IMAGES[0].url;
+    const slot2 = currentImgs[1] || "";
+    const slot3 = currentImgs[2] || "";
+
     setEditingProduct({
       _id: p._id,
       name: p.name || "",
@@ -266,7 +613,8 @@ export default function AdminPanel({
       stock: p.stock ?? 10,
       rating: p.rating ?? 4.5,
       reviews: p.reviews ?? 0,
-      image: p.image || PRESET_IMAGES[0].url,
+      image: slot1,
+      images: [slot1, slot2, slot3],
       description: p.description || ""
     });
     setIsEditModalOpen(true);
@@ -279,15 +627,30 @@ export default function AdminPanel({
       showToast("Please provide product name and price", "info");
       return;
     }
+    if (!editingProduct.category || !editingProduct.category.trim()) {
+      showToast("Please select a valid category", "info");
+      return;
+    }
+
+    const cleanedImages = Array.isArray(editingProduct.images)
+      ? editingProduct.images.map((u) => String(u || "").trim()).filter(Boolean)
+      : [];
+    if (cleanedImages.length === 0 && editingProduct.image) {
+      cleanedImages.push(editingProduct.image.trim());
+    }
 
     const payload = {
       ...editingProduct,
+      name: editingProduct.name.trim(),
+      category: editingProduct.category.trim(),
       price: Number(editingProduct.price),
       originalPrice: Number(editingProduct.originalPrice) || Number(editingProduct.price),
       discount: Number(editingProduct.discount) || 0,
       stock: Number(editingProduct.stock) || 0,
       rating: Number(editingProduct.rating) || 4.5,
-      reviews: Number(editingProduct.reviews) || 0
+      reviews: Number(editingProduct.reviews) || 0,
+      image: cleanedImages[0] || editingProduct.image || PRESET_IMAGES[0].url,
+      images: cleanedImages
     };
 
     const targetId = editingProduct._id;
@@ -297,13 +660,13 @@ export default function AdminPanel({
 
     if (backendOnline) {
       try {
-        await axios.put(`http://localhost:5000/api/products/${targetId}`, payload);
+        await axios.put(`http://localhost:5000/api/products/${targetId}`, payload, getAdminConfig());
       } catch (err) {
         console.warn("Backend update failed, kept locally", err);
       }
     }
 
-    showToast(`Updated "${payload.name}" successfully!`);
+    showToast(`Updated "${payload.name}" (${payload.category}) successfully!`);
     setIsEditModalOpen(false);
   };
 
@@ -317,7 +680,7 @@ export default function AdminPanel({
 
     if (backendOnline) {
       try {
-        await axios.delete(`http://localhost:5000/api/products/${id}`);
+        await axios.delete(`http://localhost:5000/api/products/${id}`, getAdminConfig());
       } catch (err) {
         console.warn("Backend delete failed", err);
       }
@@ -334,7 +697,7 @@ export default function AdminPanel({
 
     if (backendOnline) {
       try {
-        await axios.put(`http://localhost:5000/api/products/${product._id}`, { stock: newStock });
+        await axios.put(`http://localhost:5000/api/products/${product._id}`, { stock: newStock }, getAdminConfig());
       } catch (e) {}
     }
   };
@@ -347,7 +710,7 @@ export default function AdminPanel({
 
     if (backendOnline) {
       try {
-        await axios.put(`http://localhost:5000/api/orders/${orderId}`, { status: newStatus });
+        await axios.put(`http://localhost:5000/api/orders/${orderId}`, { status: newStatus }, getAdminConfig());
       } catch (e) {}
     }
     showToast(`Order status updated to ${newStatus}`);
@@ -362,25 +725,107 @@ export default function AdminPanel({
 
     if (backendOnline) {
       try {
-        await axios.delete(`http://localhost:5000/api/orders/${orderId}`);
+        await axios.delete(`http://localhost:5000/api/orders/${orderId}`, getAdminConfig());
       } catch (e) {}
     }
     showToast("Order removed");
   };
 
-  // Filtered Products
+  // Fetch admin reviews from MongoDB
+  const fetchAdminReviews = async () => {
+    setAdminReviewsLoading(true);
+    try {
+      let url = `http://localhost:5000/api/reviews/admin?page=${adminReviewPage}&limit=12&sort=${adminReviewSort}`;
+      if (adminReviewSearch.trim()) url += `&q=${encodeURIComponent(adminReviewSearch.trim())}`;
+      if (adminReviewRatingFilter !== "All") url += `&rating=${adminReviewRatingFilter}`;
+      if (adminReviewProductFilter !== "All") url += `&productId=${encodeURIComponent(adminReviewProductFilter)}`;
+
+      const res = await axios.get(url, getAdminConfig());
+
+      if (res.data?.success) {
+        setAdminReviews(res.data.reviews || []);
+        if (res.data.metrics) {
+          setAdminReviewsMetrics(res.data.metrics);
+        }
+        if (res.data.pagination) {
+          setAdminReviewTotalPages(res.data.pagination.totalPages || 1);
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to load admin reviews:", err);
+    } finally {
+      setAdminReviewsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "reviews" || activeTab === "dashboard") {
+      fetchAdminReviews();
+    }
+  }, [activeTab, adminReviewPage, adminReviewSort, adminReviewRatingFilter, adminReviewProductFilter]);
+
+  // Handle Admin Delete Review
+  const handleDeleteReviewAdmin = async (reviewId, customerName, productTitle) => {
+    if (!window.confirm(`Are you sure you want to delete review by "${customerName}" for "${productTitle}"? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const res = await axios.delete(`http://localhost:5000/api/reviews/${reviewId}`, getAdminConfig());
+      if (res.data?.success) {
+        showToast("Review permanently deleted from catalog.");
+        fetchAdminReviews();
+        // Sync updated ratings to frontend product list
+        axios.get("http://localhost:5000/api/products").then((r) => {
+          if (r.data?.length) {
+            setProducts(r.data);
+            localStorage.setItem("techzone_products", JSON.stringify(r.data));
+          }
+        }).catch(() => {});
+      }
+    } catch (err) {
+      showToast(err.response?.data?.message || "Failed to delete review", "error");
+    }
+  };
+
+  // Filtered and Sorted Products
   const filteredProducts = useMemo(() => {
-    return products.filter(p => {
-      const matchQuery = `${p.name} ${p.description} ${p.category}`.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchCategory = categoryFilter === "All" || p.category === categoryFilter;
+    let result = products.filter(p => {
+      // Category filter (case-insensitive)
+      const matchCategory =
+        categoryFilter === "All" ||
+        (p.category && p.category.toLowerCase() === categoryFilter.toLowerCase());
+
+      // Search query filter (matches name, description, category)
+      const query = searchQuery.trim().toLowerCase();
+      const matchQuery =
+        !query ||
+        `${p.name || ""} ${p.description || ""} ${p.category || ""}`
+          .toLowerCase()
+          .includes(query);
+
+      // Stock filter
       const stock = Number(p.stock) || 0;
       let matchStock = true;
       if (stockFilter === "In Stock") matchStock = stock > 5;
       else if (stockFilter === "Low Stock") matchStock = stock > 0 && stock <= 5;
       else if (stockFilter === "Out of Stock") matchStock = stock <= 0;
-      return matchQuery && matchCategory && matchStock;
+
+      return matchCategory && matchQuery && matchStock;
     });
-  }, [products, searchQuery, categoryFilter, stockFilter]);
+
+    // Sorting
+    return [...result].sort((a, b) => {
+      if (productSort === "price-asc") return (Number(a.price) || 0) - (Number(b.price) || 0);
+      if (productSort === "price-desc") return (Number(b.price) || 0) - (Number(a.price) || 0);
+      if (productSort === "rating") return (Number(b.rating) || 0) - (Number(a.rating) || 0);
+      if (productSort === "stock-asc") return (Number(a.stock) || 0) - (Number(b.stock) || 0);
+      if (productSort === "stock-desc") return (Number(b.stock) || 0) - (Number(a.stock) || 0);
+      if (productSort === "name-asc") return (a.name || "").localeCompare(b.name || "");
+      // Default: newest
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+    });
+  }, [products, searchQuery, categoryFilter, stockFilter, productSort]);
 
   // Filtered Orders
   const filteredOrders = useMemo(() => {
@@ -442,79 +887,178 @@ export default function AdminPanel({
         </div>
 
         <nav className="admin-nav">
-          <button
-            className={`admin-nav-item ${activeTab === "dashboard" ? "active" : ""}`}
-            onClick={() => handleTabChange("dashboard")}
-          >
-            <LayoutDashboard size={18} />
-            <span>Dashboard</span>
-          </button>
+          {hasPerm("dashboard") && (
+            <button
+              className={`admin-nav-item ${activeTab === "dashboard" ? "active" : ""}`}
+              onClick={() => handleTabChange("dashboard")}
+            >
+              <LayoutDashboard size={18} />
+              <span>Dashboard</span>
+            </button>
+          )}
 
-          <button
-            className={`admin-nav-item ${activeTab === "products" ? "active" : ""}`}
-            onClick={() => handleTabChange("products")}
-          >
-            <Package size={18} />
-            <span>Products</span>
-            <span className="badge">{products.length}</span>
-          </button>
+          {hasPerm("products") && (
+            <button
+              className={`admin-nav-item ${activeTab === "products" ? "active" : ""}`}
+              onClick={() => handleTabChange("products")}
+            >
+              <Package size={18} />
+              <span>Products</span>
+              <span className="badge">{products.length}</span>
+            </button>
+          )}
 
           {/* DEDICATED ADD PRODUCT LINK */}
-          <button
-            className={`admin-nav-item ${activeTab === "add-product" ? "active" : ""}`}
-            onClick={() => handleTabChange("add-product")}
-            style={
-              activeTab === "add-product"
-                ? {
-                    background: "linear-gradient(135deg, rgba(16, 185, 129, 0.22), rgba(6, 182, 212, 0.15))",
-                    borderColor: "rgba(16, 185, 129, 0.4)",
-                    color: "#34d399"
-                  }
-                : {}
-            }
-          >
-            <PlusCircle size={18} />
-            <span>Add Product</span>
-            <span
-              className="badge"
-              style={{
-                background: activeTab === "add-product" ? "#10b981" : "rgba(16, 185, 129, 0.2)",
-                color: activeTab === "add-product" ? "#fff" : "#34d399",
-                fontWeight: "700"
-              }}
+          {hasPerm("products_manage") && (
+            <button
+              className={`admin-nav-item ${activeTab === "add-product" ? "active" : ""}`}
+              onClick={() => handleTabChange("add-product")}
+              style={
+                activeTab === "add-product"
+                  ? {
+                      background: "linear-gradient(135deg, rgba(16, 185, 129, 0.22), rgba(6, 182, 212, 0.15))",
+                      borderColor: "rgba(16, 185, 129, 0.4)",
+                      color: "#34d399"
+                    }
+                  : {}
+              }
             >
-              + New
-            </span>
-          </button>
-
-          <button
-            className={`admin-nav-item ${activeTab === "orders" ? "active" : ""}`}
-            onClick={() => handleTabChange("orders")}
-          >
-            <ShoppingCart size={18} />
-            <span>Orders</span>
-            {pendingOrdersCount > 0 && (
-              <span className="badge" style={{ background: "#f59e0b", color: "#000" }}>
-                {pendingOrdersCount}
+              <PlusCircle size={18} />
+              <span>Add Product</span>
+              <span
+                className="badge"
+                style={{
+                  background: activeTab === "add-product" ? "#10b981" : "rgba(16, 185, 129, 0.2)",
+                  color: activeTab === "add-product" ? "#fff" : "#34d399",
+                  fontWeight: "700"
+                }}
+              >
+                + New
               </span>
-            )}
-          </button>
+            </button>
+          )}
 
-          <button
-            className={`admin-nav-item ${activeTab === "analytics" ? "active" : ""}`}
-            onClick={() => handleTabChange("analytics")}
-          >
-            <BarChart3 size={18} />
-            <span>Analytics</span>
-          </button>
+          {hasPerm("orders") && (
+            <button
+              className={`admin-nav-item ${activeTab === "orders" ? "active" : ""}`}
+              onClick={() => handleTabChange("orders")}
+            >
+              <ShoppingCart size={18} />
+              <span>Orders</span>
+              {pendingOrdersCount > 0 && (
+                <span className="badge" style={{ background: "#f59e0b", color: "#000" }}>
+                  {pendingOrdersCount}
+                </span>
+              )}
+            </button>
+          )}
 
-          <button
-            className={`admin-nav-item ${activeTab === "customers" ? "active" : ""}`}
-            onClick={() => handleTabChange("customers")}
-          >
-            <Users size={18} />
-            <span>Customers</span>
-          </button>
+          {hasPerm("reviews") && (
+            <button
+              className={`admin-nav-item ${activeTab === "reviews" ? "active" : ""}`}
+              onClick={() => handleTabChange("reviews")}
+              id="admin-nav-reviews-btn"
+            >
+              <Star size={18} />
+              <span>Reviews</span>
+              {adminReviewsMetrics.totalReviews > 0 && (
+                <span
+                  className="badge"
+                  style={{
+                    background: activeTab === "reviews" ? "#f59e0b" : "rgba(245, 158, 11, 0.2)",
+                    color: activeTab === "reviews" ? "#000" : "#fbbf24",
+                    fontWeight: "700"
+                  }}
+                >
+                  {adminReviewsMetrics.totalReviews}
+                </span>
+              )}
+            </button>
+          )}
+
+          {/* FLASH SALES MANAGEMENT TAB */}
+          {hasPerm("coupons") && (
+            <button
+              className={`admin-nav-item ${activeTab === "flash-sales" ? "active" : ""}`}
+              onClick={() => handleTabChange("flash-sales")}
+              id="admin-nav-flash-sales-btn"
+              style={
+                activeTab === "flash-sales"
+                  ? {
+                      background: "linear-gradient(135deg, rgba(239, 68, 68, 0.22), rgba(245, 158, 11, 0.15))",
+                      borderColor: "rgba(239, 68, 68, 0.4)",
+                      color: "#f87171"
+                    }
+                  : {}
+              }
+            >
+              <Zap size={18} color={activeTab === "flash-sales" ? "#ef4444" : "currentColor"} />
+              <span>Flash Sales</span>
+              <span
+                className="badge"
+                style={{
+                  background: activeTab === "flash-sales" ? "#ef4444" : "rgba(239, 68, 68, 0.2)",
+                  color: activeTab === "flash-sales" ? "#fff" : "#fca5a5",
+                  fontWeight: "700"
+                }}
+              >
+                ⚡ Deals
+              </span>
+            </button>
+          )}
+
+          {/* RETURNS & REFUNDS MANAGEMENT TAB */}
+          {hasPerm("returns") && (
+            <button
+              className={`admin-nav-item ${activeTab === "returns" ? "active" : ""}`}
+              onClick={() => handleTabChange("returns")}
+              id="admin-nav-returns-btn"
+              style={
+                activeTab === "returns"
+                  ? {
+                      background: "linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(239, 68, 68, 0.15))",
+                      borderColor: "rgba(245, 158, 11, 0.4)",
+                      color: "#fbbf24"
+                    }
+                  : {}
+              }
+            >
+              <RotateCcw size={18} color={activeTab === "returns" ? "#fbbf24" : "currentColor"} />
+              <span>Returns</span>
+              {returnsPendingCount > 0 && (
+                <span
+                  className="badge"
+                  style={{
+                    background: "#f59e0b",
+                    color: "#000",
+                    fontWeight: "700"
+                  }}
+                >
+                  {returnsPendingCount}
+                </span>
+              )}
+            </button>
+          )}
+
+          {hasPerm("reports") && (
+            <button
+              className={`admin-nav-item ${activeTab === "analytics" ? "active" : ""}`}
+              onClick={() => handleTabChange("analytics")}
+            >
+              <BarChart3 size={18} />
+              <span>Analytics</span>
+            </button>
+          )}
+
+          {hasPerm("customers") && (
+            <button
+              className={`admin-nav-item ${activeTab === "customers" ? "active" : ""}`}
+              onClick={() => handleTabChange("customers")}
+            >
+              <Users size={18} />
+              <span>Customers</span>
+            </button>
+          )}
 
           <button
             className={`admin-nav-item ${activeTab === "settings" ? "active" : ""}`}
@@ -526,16 +1070,28 @@ export default function AdminPanel({
         </nav>
 
         <div className="admin-sidebar-footer">
-          <button className="admin-store-btn" onClick={onBackToStore}>
+          <button className="admin-store-btn" onClick={onBackToStore} title="Return to storefront">
             <ArrowLeft size={16} />
             <span>Back to Store</span>
           </button>
 
+          <button
+            className="admin-logout-btn"
+            onClick={onAdminLogout || onLogout}
+            id="admin-sidebar-logout-btn"
+            title="Log out of Admin Console"
+          >
+            <LogOut size={16} />
+            <span>Admin Sign Out</span>
+          </button>
+
           <div className="admin-user-pill">
-            <div className="admin-avatar">AD</div>
+            <div className="admin-avatar">
+              {((effectiveAdmin?.name || "AD").trim().slice(0, 2)).toUpperCase()}
+            </div>
             <div className="admin-user-info">
-              <span className="admin-user-name">Administrator</span>
-              <span className="admin-user-role">Super Admin</span>
+              <span className="admin-user-name">{effectiveAdmin?.name || "Administrator"}</span>
+              <span className="admin-user-role">{effectiveAdmin?.email || "admin@techzone.com"}</span>
             </div>
           </div>
         </div>
@@ -551,6 +1107,9 @@ export default function AdminPanel({
               {activeTab === "products" && "Product Catalog Management"}
               {activeTab === "add-product" && "Add New Product"}
               {activeTab === "orders" && "Customer Orders Management"}
+              {activeTab === "reviews" && "Customer Product Reviews & Moderation"}
+              {activeTab === "flash-sales" && "Flash Sales & Countdown Deals Management"}
+              {activeTab === "returns" && "Customer Returns & Refund Management"}
               {activeTab === "analytics" && "Store Performance & Analytics"}
               {activeTab === "customers" && "Customer Directory"}
               {activeTab === "settings" && "Store Settings & Tools"}
@@ -573,13 +1132,15 @@ export default function AdminPanel({
 
           <div className="admin-topbar-right">
             {activeTab !== "add-product" ? (
-              <button
-                className="admin-action-btn-primary"
-                onClick={() => handleTabChange("add-product")}
-              >
-                <Plus size={16} />
-                <span>Add New Product</span>
-              </button>
+              hasPerm("products_manage") && (
+                <button
+                  className="admin-action-btn-primary"
+                  onClick={() => handleTabChange("add-product")}
+                >
+                  <Plus size={16} />
+                  <span>Add New Product</span>
+                </button>
+              )
             ) : (
               <button
                 className="admin-btn-secondary"
@@ -594,6 +1155,32 @@ export default function AdminPanel({
 
         {/* Tab Contents */}
         <div className="admin-content">
+          {/* RBAC Restricted Module Access Banner */}
+          {((activeTab === "products" && !hasPerm("products")) ||
+            (activeTab === "add-product" && !hasPerm("products_manage")) ||
+            (activeTab === "orders" && !hasPerm("orders")) ||
+            (activeTab === "reviews" && !hasPerm("reviews")) ||
+            (activeTab === "flash-sales" && !hasPerm("coupons")) ||
+            (activeTab === "returns" && !hasPerm("returns")) ||
+            (activeTab === "analytics" && !hasPerm("reports")) ||
+            (activeTab === "customers" && !hasPerm("customers"))) && (
+            <div style={{ padding: "60px 24px", textAlign: "center", background: "rgba(239, 68, 68, 0.05)", border: "1px solid rgba(239, 68, 68, 0.2)", borderRadius: 18, margin: "24px auto", maxWidth: 600 }}>
+              <div style={{ width: 60, height: 60, borderRadius: 18, background: "rgba(239, 68, 68, 0.15)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px", color: "#f87171" }}>
+                <ShieldAlert size={34} />
+              </div>
+              <h2 style={{ color: "#ffffff", fontSize: 20, fontWeight: 800, margin: "0 0 10px" }}>Module Access Restricted</h2>
+              <p style={{ color: "#94a3b8", fontSize: 13.5, lineHeight: 1.6, margin: "0 0 20px" }}>
+                Your administrator account does not have permission to view or manage this module. Please contact your Super Administrator to request role assignment.
+              </p>
+              <button
+                className="admin-action-btn-primary"
+                onClick={() => handleTabChange(hasPerm("dashboard") ? "dashboard" : "settings")}
+                style={{ margin: "0 auto" }}
+              >
+                Return to Overview
+              </button>
+            </div>
+          )}
           {/* =========================================================
               TAB: DEDICATED SEPARATE ADD PRODUCT PAGE
              ========================================================= */}
@@ -700,14 +1287,11 @@ export default function AdminPanel({
                           className="admin-select"
                           value={addForm.category}
                           onChange={e => setAddForm({ ...addForm, category: e.target.value })}
+                          required
                         >
-                          <option value="Mobiles">Mobiles</option>
-                          <option value="Laptops">Laptops</option>
-                          <option value="Headphones">Headphones</option>
-                          <option value="Smartwatches">Smartwatches</option>
-                          <option value="Earbuds">Earbuds</option>
-                          <option value="Monitors">Monitors</option>
-                          <option value="Accessories">Accessories</option>
+                          {categories.filter(c => c !== "All").map(c => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
                         </select>
                       </div>
 
@@ -868,33 +1452,136 @@ export default function AdminPanel({
                   </div>
 
                   {/* Section 4: Image & Presets */}
+                  {/* Section 4: 3 Images & Live Previews */}
                   <div className="section-card">
                     <div className="section-header">
-                      <h3><ImageIcon size={17} color="#a78bfa" /> Product Media & Image</h3>
-                      <span>High-res photo URL or preset</span>
+                      <h3><ImageIcon size={17} color="#a78bfa" /> Product Media (3 Gallery Images)</h3>
+                      <span>Manage all 3 product photos with live previews</span>
                     </div>
 
-                    <div className="admin-form-group">
-                      <label>Image URL</label>
-                      <input
-                        className="admin-input"
-                        placeholder="https://images.unsplash.com/..."
-                        value={addForm.image}
-                        onChange={e => setAddForm({ ...addForm, image: e.target.value })}
-                      />
+                    <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginTop: "12px" }}>
+                      {[0, 1, 2].map((idx) => {
+                        const currentUrl = (addForm.images && addForm.images[idx]) || (idx === 0 ? addForm.image : "");
+                        const slotLabels = [
+                          "Image 1 (Primary Front Display) *",
+                          "Image 2 (Angle / Profile View)",
+                          "Image 3 (Feature / Lifestyle Detail)"
+                        ];
+                        return (
+                          <div
+                            key={idx}
+                            style={{
+                              background: "rgba(255, 255, 255, 0.02)",
+                              border: "1px solid var(--admin-border, #333d47)",
+                              borderRadius: "10px",
+                              padding: "12px"
+                            }}
+                          >
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                              <label style={{ fontSize: "12px", fontWeight: "600", color: "#f8fafc", display: "flex", alignItems: "center", gap: "6px" }}>
+                                <span
+                                  style={{
+                                    background: idx === 0 ? "#2563eb" : "#475569",
+                                    color: "#fff",
+                                    fontSize: "10px",
+                                    padding: "2px 6px",
+                                    borderRadius: "4px"
+                                  }}
+                                >
+                                  #{idx + 1}
+                                </span>
+                                {slotLabels[idx]}
+                              </label>
+                              {currentUrl && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const next = [...(addForm.images || ["", "", ""])];
+                                    next[idx] = "";
+                                    setAddForm({ ...addForm, images: next, image: next[0] || "" });
+                                  }}
+                                  style={{
+                                    background: "transparent",
+                                    border: "none",
+                                    color: "#f87171",
+                                    fontSize: "11px",
+                                    cursor: "pointer"
+                                  }}
+                                >
+                                  Clear
+                                </button>
+                              )}
+                            </div>
+
+                            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                              <div
+                                style={{
+                                  width: "60px",
+                                  height: "60px",
+                                  borderRadius: "8px",
+                                  background: "#0b0f17",
+                                  border: "1px solid #334155",
+                                  overflow: "hidden",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  flexShrink: 0
+                                }}
+                              >
+                                {currentUrl ? (
+                                  <img
+                                    key={currentUrl}
+                                    src={currentUrl}
+                                    alt={`Preview ${idx + 1}`}
+                                    style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                                    onError={(e) => { e.target.style.display = "none"; }}
+                                  />
+                                ) : (
+                                  <ImageIcon size={20} color="#475569" />
+                                )}
+                              </div>
+
+                              <input
+                                className="admin-input"
+                                placeholder={`Paste URL for image #${idx + 1}...`}
+                                value={currentUrl}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  const next = [...(addForm.images || ["", "", ""])];
+                                  next[idx] = val;
+                                  setAddForm({
+                                    ...addForm,
+                                    images: next,
+                                    image: next[0] || val
+                                  });
+                                }}
+                                style={{ flex: 1 }}
+                                id={`add-product-image-input-${idx}`}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
 
-                    <div className="admin-form-group">
-                      <label style={{ fontSize: "11px" }}>Quick 1-Click High-Res Presets:</label>
+                    <div className="admin-form-group" style={{ marginTop: "16px" }}>
+                      <label style={{ fontSize: "11px" }}>Quick 1-Click High-Res Presets (Sets all 3 Images):</label>
                       <div className="image-presets">
                         {PRESET_IMAGES.map((preset, idx) => (
                           <button
                             key={idx}
                             type="button"
                             className="image-preset-chip"
-                            onClick={() => setAddForm({ ...addForm, image: preset.url })}
+                            onClick={() => {
+                              const imgs = preset.images || [preset.url, preset.url, preset.url];
+                              setAddForm({
+                                ...addForm,
+                                image: imgs[0],
+                                images: [...imgs]
+                              });
+                            }}
                           >
-                            {preset.label}
+                            {preset.label} (3-Pack)
                           </button>
                         ))}
                       </div>
@@ -1274,11 +1961,91 @@ export default function AdminPanel({
              ========================================================= */}
           {activeTab === "products" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+              {/* Category-Wise Navigation Section */}
+              <div className="admin-category-nav-card">
+                <div className="admin-category-nav-header">
+                  <div className="admin-category-nav-title-group">
+                    <div className="admin-category-badge-icon">
+                      <Layers size={18} />
+                    </div>
+                    <div>
+                      <h3 className="admin-category-nav-title">Categories</h3>
+                      <p className="admin-category-nav-subtitle">
+                        Filter and manage inventory by product category ({categories.length - 1} categories, {products.length} total products)
+                      </p>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                    <button
+                      className="admin-btn-secondary"
+                      onClick={() => setIsCategoryModalOpen(true)}
+                      title="Manage Categories (Create, Rename, Delete)"
+                      style={{ height: "36px", fontSize: "12px" }}
+                    >
+                      <FolderPlus size={14} />
+                      <span>Manage Categories</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Category Pills Navigation Strip */}
+                <div className="admin-category-pills-container">
+                  {categories.map((catName) => {
+                    const isSelected = categoryFilter.toLowerCase() === catName.toLowerCase();
+                    const count = categoryCounts[catName] !== undefined
+                      ? categoryCounts[catName]
+                      : (catName === "All" ? products.length : 0);
+                    const IconComp = getCategoryIcon(catName);
+
+                    return (
+                      <button
+                        key={catName}
+                        type="button"
+                        className={`admin-category-pill-btn ${isSelected ? "active" : ""}`}
+                        onClick={() => handleCategorySelect(catName)}
+                        title={`Filter by ${catName} (${count} products)`}
+                      >
+                        <span className="pill-icon">
+                          <IconComp size={14} />
+                        </span>
+                        <span className="pill-label">{catName === "All" ? "All Products" : catName}</span>
+                        <span className={`pill-count ${isSelected ? "active-count" : ""}`}>
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Active Category Meta Bar */}
+                {categoryFilter !== "All" && (
+                  <div className="admin-active-category-bar">
+                    <div className="active-cat-info">
+                      <span>Filtering by:</span>
+                      <strong className="active-cat-name">{categoryFilter}</strong>
+                      <span className="active-cat-count">
+                        ({categoryCounts[categoryFilter] || 0} product{(categoryCounts[categoryFilter] || 0) === 1 ? "" : "s"})
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="active-cat-clear-btn"
+                      onClick={() => handleCategorySelect("All")}
+                      title="Reset to All Products"
+                    >
+                      <X size={13} />
+                      <span>Show All Categories</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Products Toolbar */}
               <div className="admin-toolbar">
                 <div className="toolbar-search">
                   <Search size={18} color="#94a3b8" />
                   <input
-                    placeholder="Search by title, category, description..."
+                    placeholder={`Search in ${categoryFilter === "All" ? "all categories" : categoryFilter} (name, description)...`}
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
                   />
@@ -1286,6 +2053,7 @@ export default function AdminPanel({
                     <button
                       onClick={() => setSearchQuery("")}
                       style={{ background: "none", border: 0, color: "#94a3b8", cursor: "pointer" }}
+                      title="Clear search"
                     >
                       <X size={16} />
                     </button>
@@ -1296,15 +2064,24 @@ export default function AdminPanel({
                   <select
                     className="toolbar-select"
                     value={categoryFilter}
-                    onChange={e => setCategoryFilter(e.target.value)}
+                    onChange={e => handleCategorySelect(e.target.value)}
+                    title="Category Filter"
                   >
-                    {categories.map(c => <option key={c} value={c}>{c === "All" ? "All Categories" : c}</option>)}
+                    {categories.map(c => {
+                      const cnt = categoryCounts[c] !== undefined ? categoryCounts[c] : (c === "All" ? products.length : 0);
+                      return (
+                        <option key={c} value={c}>
+                          {c === "All" ? `All Products (${cnt})` : `${c} (${cnt})`}
+                        </option>
+                      );
+                    })}
                   </select>
 
                   <select
                     className="toolbar-select"
                     value={stockFilter}
                     onChange={e => setStockFilter(e.target.value)}
+                    title="Stock Status Filter"
                   >
                     <option value="All">All Stock Levels</option>
                     <option value="In Stock">In Stock (&gt; 5)</option>
@@ -1312,12 +2089,35 @@ export default function AdminPanel({
                     <option value="Out of Stock">Out of Stock (0)</option>
                   </select>
 
-                  <button className="admin-btn-secondary" onClick={handleExportJSON}>
+                  <select
+                    className="toolbar-select"
+                    value={productSort}
+                    onChange={e => setProductSort(e.target.value)}
+                    title="Sort Products"
+                  >
+                    <option value="newest">Sort: Newest Added</option>
+                    <option value="price-asc">Price: Low to High</option>
+                    <option value="price-desc">Price: High to Low</option>
+                    <option value="rating">Highest Rated</option>
+                    <option value="stock-asc">Stock: Low to High</option>
+                    <option value="stock-desc">Stock: High to Low</option>
+                    <option value="name-asc">Alphabetical (A - Z)</option>
+                  </select>
+
+                  <button className="admin-btn-secondary" onClick={handleExportJSON} title="Export Catalog JSON">
                     <Download size={15} />
                     <span>Export</span>
                   </button>
 
-                  <button className="admin-action-btn-primary" onClick={() => handleTabChange("add-product")}>
+                  <button
+                    className="admin-action-btn-primary"
+                    onClick={() => {
+                      if (categoryFilter !== "All") {
+                        setAddForm(prev => ({ ...prev, category: categoryFilter }));
+                      }
+                      handleTabChange("add-product");
+                    }}
+                  >
                     <Plus size={16} />
                     <span>Add Product</span>
                   </button>
@@ -1343,7 +2143,35 @@ export default function AdminPanel({
                         <tr key={p._id}>
                           <td>
                             <div className="product-row-info">
-                              <img src={p.image} alt={p.name} className="product-thumb" />
+                              <div style={{ position: "relative", flexShrink: 0 }}>
+                                <img
+                                  src={(p.images && p.images[0]) || p.image}
+                                  alt={p.name}
+                                  className="product-thumb"
+                                  onError={(e) => {
+                                    if (p.image && e.target.src !== p.image) e.target.src = p.image;
+                                  }}
+                                />
+                                {Array.isArray(p.images) && p.images.length > 1 && (
+                                  <span
+                                    style={{
+                                      position: "absolute",
+                                      bottom: "-2px",
+                                      right: "-2px",
+                                      background: "#2563eb",
+                                      color: "#fff",
+                                      fontSize: "9px",
+                                      fontWeight: 700,
+                                      padding: "1px 5px",
+                                      borderRadius: "4px",
+                                      border: "1px solid #1e293b"
+                                    }}
+                                    title={`${p.images.length} photos in gallery`}
+                                  >
+                                    {p.images.length}
+                                  </span>
+                                )}
+                              </div>
                               <div className="product-title-group">
                                 <h4>{p.name}</h4>
                                 <p>{p.description}</p>
@@ -1415,16 +2243,47 @@ export default function AdminPanel({
 
                     {filteredProducts.length === 0 && (
                       <tr>
-                        <td colSpan="6" style={{ textAlign: "center", padding: "48px 20px" }}>
-                          <p style={{ color: "#94a3b8", fontSize: "15px", margin: "0 0 12px" }}>
-                            No products match your search or filters.
-                          </p>
-                          <button
-                            className="admin-btn-secondary"
-                            onClick={() => { setSearchQuery(""); setCategoryFilter("All"); setStockFilter("All"); }}
-                          >
-                            Reset Filters
-                          </button>
+                        <td colSpan="6" style={{ textAlign: "center", padding: "56px 20px" }}>
+                          <div className="admin-empty-category-container">
+                            <div className="admin-empty-icon-wrap">
+                              <Package size={34} color="#64748b" />
+                            </div>
+                            <h4 style={{ color: "#f1f5f9", margin: "14px 0 6px", fontSize: "16px" }}>
+                              {categoryFilter !== "All"
+                                ? `No products found in "${categoryFilter}"`
+                                : "No products match your filters"}
+                            </h4>
+                            <p style={{ color: "#94a3b8", fontSize: "13px", maxWidth: "440px", margin: "0 auto 18px", lineHeight: "1.5" }}>
+                              {searchQuery
+                                ? `No products in ${categoryFilter === "All" ? "the catalog" : `"${categoryFilter}"`} match "${searchQuery}". Try adjusting your keywords or clearing the category filter.`
+                                : `There are currently no products cataloged under the "${categoryFilter}" category. You can add a new product directly or reset your filters.`}
+                            </p>
+                            <div style={{ display: "flex", gap: "10px", justifyContent: "center", flexWrap: "wrap" }}>
+                              <button
+                                className="admin-btn-secondary"
+                                onClick={() => {
+                                  setSearchQuery("");
+                                  handleCategorySelect("All");
+                                  setStockFilter("All");
+                                  setProductSort("newest");
+                                }}
+                              >
+                                Reset All Filters
+                              </button>
+                              {categoryFilter !== "All" && (
+                                <button
+                                  className="admin-action-btn-primary"
+                                  onClick={() => {
+                                    setAddForm(prev => ({ ...prev, category: categoryFilter }));
+                                    handleTabChange("add-product");
+                                  }}
+                                >
+                                  <Plus size={15} />
+                                  <span>Add Product to {categoryFilter}</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
                         </td>
                       </tr>
                     )}
@@ -1521,7 +2380,9 @@ export default function AdminPanel({
                           <strong style={{ color: "#34d399", fontSize: "15px" }}>
                             ₹{(o.totalAmount || 0).toLocaleString("en-IN")}
                           </strong>
-                          <div style={{ fontSize: "10px", color: "#10b981" }}>● Paid</div>
+                          <div style={{ fontSize: "11px", fontWeight: "600", color: o.paymentStatus === "Paid" ? "#10b981" : "#f59e0b" }}>
+                            ● {o.paymentStatus || (o.paymentMethod === "Cash on Delivery" ? "Pending" : "Paid")}
+                          </div>
                         </td>
                         <td>
                           <select
@@ -1569,6 +2430,544 @@ export default function AdminPanel({
                 </table>
               </div>
             </div>
+          )}
+
+          {/* =========================================================
+              TAB: REVIEWS & RATINGS MANAGEMENT
+             ========================================================= */}
+          {activeTab === "reviews" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "24px" }} id="admin-reviews-tab-container">
+              {/* Reviews KPI Stats Grid */}
+              <div className="admin-stats-grid">
+                <div className="admin-stat-card">
+                  <div className="stat-glow-line glow-blue" />
+                  <div className="stat-card-header">
+                    <span>Total Reviews</span>
+                    <div className="stat-icon-wrapper icon-blue">
+                      <MessageSquare size={20} />
+                    </div>
+                  </div>
+                  <h3 className="stat-value">{adminReviewsMetrics.totalReviews}</h3>
+                  <div className="stat-footer">
+                    <span>Across product catalog</span>
+                  </div>
+                </div>
+
+                <div className="admin-stat-card">
+                  <div className="stat-glow-line glow-amber" />
+                  <div className="stat-card-header">
+                    <span>Average Rating</span>
+                    <div className="stat-icon-wrapper icon-amber">
+                      <Star size={20} fill="#f59e0b" />
+                    </div>
+                  </div>
+                  <h3 className="stat-value">
+                    {adminReviewsMetrics.averageRating ? adminReviewsMetrics.averageRating.toFixed(1) : "0.0"}{" "}
+                    <span style={{ fontSize: "16px", color: "#f59e0b" }}>★</span>
+                  </h3>
+                  <div className="stat-footer">
+                    <span className="trend-up">{adminReviewsMetrics.fiveStarReviews} five-star ratings</span>
+                  </div>
+                </div>
+
+                <div className="admin-stat-card">
+                  <div className="stat-glow-line glow-emerald" />
+                  <div className="stat-card-header">
+                    <span>Verified Purchases</span>
+                    <div className="stat-icon-wrapper icon-emerald">
+                      <CheckCircle2 size={20} />
+                    </div>
+                  </div>
+                  <h3 className="stat-value">{adminReviewsMetrics.verifiedPurchases}</h3>
+                  <div className="stat-footer">
+                    <span>Confirmed order buyers</span>
+                  </div>
+                </div>
+
+                <div className="admin-stat-card">
+                  <div className="stat-glow-line glow-purple" />
+                  <div className="stat-card-header">
+                    <span>Critical Reviews</span>
+                    <div className="stat-icon-wrapper icon-purple">
+                      <AlertTriangle size={20} />
+                    </div>
+                  </div>
+                  <h3
+                    className="stat-value"
+                    style={{ color: adminReviewsMetrics.criticalReviews > 0 ? "#f87171" : "#fff" }}
+                  >
+                    {adminReviewsMetrics.criticalReviews}
+                  </h3>
+                  <div className="stat-footer">
+                    <span>1 or 2 star feedback</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Reviews Table Container with Filters */}
+              <div className="admin-card">
+                <div className="admin-card-header">
+                  <div>
+                    <h3>
+                      <Star size={18} fill="#f59e0b" /> Customer Product Reviews Moderation
+                    </h3>
+                    <p>Search, filter, view and moderate customer feedback across your electronics store</p>
+                  </div>
+                  <button
+                    className="admin-btn-secondary"
+                    onClick={fetchAdminReviews}
+                    title="Refresh reviews"
+                    style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+                    id="admin-reviews-refresh-btn"
+                  >
+                    <RefreshCw size={14} className={adminReviewsLoading ? "spin" : ""} /> Refresh
+                  </button>
+                </div>
+
+                {/* Filter and Search Bar */}
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "12px",
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                    margin: "18px 0 20px"
+                  }}
+                >
+                  {/* Search */}
+                  <div
+                    className="admin-search-box"
+                    style={{
+                      flex: "1 1 240px",
+                      maxWidth: "340px",
+                      display: "flex",
+                      alignItems: "center",
+                      background: "#171c21",
+                      border: "1px solid #333d47",
+                      borderRadius: "8px",
+                      padding: "0 12px"
+                    }}
+                  >
+                    <Search size={16} color="#64748b" />
+                    <input
+                      type="text"
+                      id="admin-review-search-input"
+                      placeholder="Search review comments or authors..."
+                      value={adminReviewSearch}
+                      onChange={(e) => {
+                        setAdminReviewSearch(e.target.value);
+                        setAdminReviewPage(1);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") fetchAdminReviews();
+                      }}
+                      style={{
+                        border: "none",
+                        background: "transparent",
+                        color: "#f8fafc",
+                        padding: "9px 10px",
+                        width: "100%",
+                        outline: "none",
+                        fontSize: "13px"
+                      }}
+                    />
+                    {adminReviewSearch && (
+                      <button
+                        onClick={() => {
+                          setAdminReviewSearch("");
+                          setTimeout(fetchAdminReviews, 50);
+                        }}
+                        style={{
+                          border: "none",
+                          background: "none",
+                          color: "#64748b",
+                          cursor: "pointer",
+                          padding: "0"
+                        }}
+                        aria-label="Clear search"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Rating Filter */}
+                  <select
+                    className="admin-select"
+                    id="admin-review-rating-filter"
+                    value={adminReviewRatingFilter}
+                    onChange={(e) => {
+                      setAdminReviewRatingFilter(e.target.value);
+                      setAdminReviewPage(1);
+                    }}
+                    style={{
+                      background: "#171c21",
+                      border: "1px solid #333d47",
+                      color: "#e2e8f0",
+                      padding: "9px 12px",
+                      borderRadius: "8px",
+                      fontSize: "13px",
+                      cursor: "pointer"
+                    }}
+                  >
+                    <option value="All">All Star Ratings</option>
+                    <option value="5">5 Stars ★★★★★</option>
+                    <option value="4">4 Stars ★★★★☆</option>
+                    <option value="3">3 Stars ★★★☆☆</option>
+                    <option value="2">2 Stars ★★☆☆☆</option>
+                    <option value="1">1 Star ★☆☆☆☆</option>
+                  </select>
+
+                  {/* Product Filter */}
+                  <select
+                    className="admin-select"
+                    id="admin-review-product-filter"
+                    value={adminReviewProductFilter}
+                    onChange={(e) => {
+                      setAdminReviewProductFilter(e.target.value);
+                      setAdminReviewPage(1);
+                    }}
+                    style={{
+                      background: "#171c21",
+                      border: "1px solid #333d47",
+                      color: "#e2e8f0",
+                      padding: "9px 12px",
+                      borderRadius: "8px",
+                      fontSize: "13px",
+                      maxWidth: "240px",
+                      cursor: "pointer"
+                    }}
+                  >
+                    <option value="All">All Products</option>
+                    {products.map((p) => (
+                      <option key={p._id} value={p._id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Sort Order */}
+                  <select
+                    className="admin-select"
+                    id="admin-review-sort-filter"
+                    value={adminReviewSort}
+                    onChange={(e) => {
+                      setAdminReviewSort(e.target.value);
+                      setAdminReviewPage(1);
+                    }}
+                    style={{
+                      background: "#171c21",
+                      border: "1px solid #333d47",
+                      color: "#e2e8f0",
+                      padding: "9px 12px",
+                      borderRadius: "8px",
+                      fontSize: "13px",
+                      cursor: "pointer"
+                    }}
+                  >
+                    <option value="recent">Most Recent</option>
+                    <option value="highest">Highest Rating</option>
+                    <option value="lowest">Lowest Rating</option>
+                    <option value="helpful">Most Helpful</option>
+                  </select>
+                </div>
+
+                {/* Reviews Table */}
+                <div className="admin-table-container">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: "220px" }}>Product</th>
+                        <th style={{ width: "160px" }}>Customer</th>
+                        <th style={{ width: "120px" }}>Rating</th>
+                        <th>Review Details</th>
+                        <th style={{ width: "110px" }}>Date</th>
+                        <th style={{ width: "80px", textAlign: "center" }}>Helpful</th>
+                        <th style={{ width: "95px", textAlign: "right" }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {adminReviews.map((rev) => {
+                        const prod =
+                          rev.productId ||
+                          products.find((p) => String(p._id) === String(rev.productIdStr)) ||
+                          {};
+                        return (
+                          <tr key={rev._id} id={`admin-review-row-${rev._id}`}>
+                            <td>
+                              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                {prod.image ? (
+                                  <img
+                                    src={prod.image}
+                                    alt={prod.name || "Product"}
+                                    style={{
+                                      width: "42px",
+                                      height: "42px",
+                                      objectFit: "contain",
+                                      background: "#14181c",
+                                      borderRadius: "6px",
+                                      padding: "2px",
+                                      border: "1px solid #2e3740"
+                                    }}
+                                  />
+                                ) : (
+                                  <div
+                                    style={{
+                                      width: "42px",
+                                      height: "42px",
+                                      background: "#242c33",
+                                      borderRadius: "6px",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      color: "#64748b"
+                                    }}
+                                  >
+                                    <Package size={18} />
+                                  </div>
+                                )}
+                                <div>
+                                  <strong
+                                    style={{
+                                      color: "#f8fafc",
+                                      fontSize: "13px",
+                                      display: "block",
+                                      maxWidth: "150px",
+                                      whiteSpace: "nowrap",
+                                      overflow: "hidden",
+                                      textOverflow: "ellipsis"
+                                    }}
+                                  >
+                                    {prod.name || "Product"}
+                                  </strong>
+                                  <span style={{ fontSize: "11px", color: "#38bdf8" }}>
+                                    {prod.category || "Electronics"}
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+
+                            <td>
+                              <div>
+                                <strong style={{ color: "#f8fafc", fontSize: "13px" }}>
+                                  {rev.customerName}
+                                </strong>
+                                {rev.isVerifiedPurchase && (
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: "3px",
+                                      color: "#34d399",
+                                      fontSize: "11px",
+                                      marginTop: "2px"
+                                    }}
+                                  >
+                                    <CheckCircle2 size={12} /> Verified Buyer
+                                  </div>
+                                )}
+                                {rev.customerEmail && (
+                                  <div
+                                    style={{
+                                      fontSize: "11px",
+                                      color: "#64748b",
+                                      marginTop: "2px",
+                                      maxWidth: "140px",
+                                      overflow: "hidden",
+                                      textOverflow: "ellipsis"
+                                    }}
+                                  >
+                                    {rev.customerEmail}
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+
+                            <td>
+                              <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                                {[1, 2, 3, 4, 5].map((s) => (
+                                  <Star
+                                    key={s}
+                                    size={12}
+                                    fill={s <= rev.rating ? "#f59e0b" : "none"}
+                                    color={s <= rev.rating ? "#f59e0b" : "#475569"}
+                                  />
+                                ))}
+                                <span
+                                  style={{
+                                    color: "#fff",
+                                    fontWeight: "700",
+                                    fontSize: "12px",
+                                    marginLeft: "4px"
+                                  }}
+                                >
+                                  {rev.rating}.0
+                                </span>
+                              </div>
+                            </td>
+
+                            <td>
+                              <div>
+                                <strong
+                                  style={{
+                                    color: "#f1f5f9",
+                                    fontSize: "13px",
+                                    display: "block",
+                                    marginBottom: "4px"
+                                  }}
+                                >
+                                  {rev.title}
+                                </strong>
+                                <p
+                                  style={{
+                                    color: "#94a3b8",
+                                    fontSize: "12px",
+                                    margin: 0,
+                                    lineHeight: 1.5,
+                                    maxHeight: "54px",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis"
+                                  }}
+                                >
+                                  {rev.comment}
+                                </p>
+                              </div>
+                            </td>
+
+                            <td>
+                              <span style={{ fontSize: "12px", color: "#94a3b8" }}>
+                                {new Date(rev.createdAt).toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric"
+                                })}
+                              </span>
+                            </td>
+
+                            <td style={{ textAlign: "center" }}>
+                              <span
+                                style={{
+                                  fontSize: "12px",
+                                  color: (rev.helpfulVotes || 0) > 0 ? "#10b981" : "#64748b",
+                                  fontWeight: "600"
+                                }}
+                              >
+                                👍 {rev.helpfulVotes || 0}
+                              </span>
+                            </td>
+
+                            <td style={{ textAlign: "right" }}>
+                              <div className="table-actions" style={{ justifyContent: "flex-end" }}>
+                                <button
+                                  className="action-icon-btn"
+                                  onClick={() =>
+                                    onViewProduct(prod._id ? prod : { _id: rev.productIdStr })
+                                  }
+                                  title="View Product in Store"
+                                >
+                                  <ExternalLink size={14} />
+                                </button>
+                                <button
+                                  className="action-icon-btn delete-btn"
+                                  onClick={() =>
+                                    handleDeleteReviewAdmin(
+                                      rev._id,
+                                      rev.customerName,
+                                      prod.name || "Product"
+                                    )
+                                  }
+                                  title="Delete Review (Moderation)"
+                                  id={`admin-delete-review-${rev._id}`}
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+
+                      {adminReviews.length === 0 && !adminReviewsLoading && (
+                        <tr>
+                          <td colSpan="7" style={{ textAlign: "center", padding: "48px 20px" }}>
+                            <p style={{ color: "#94a3b8", fontSize: "15px", margin: "0 0 12px" }}>
+                              No reviews match your search or filters.
+                            </p>
+                            <button
+                              className="admin-btn-secondary"
+                              onClick={() => {
+                                setAdminReviewSearch("");
+                                setAdminReviewRatingFilter("All");
+                                setAdminReviewProductFilter("All");
+                                setAdminReviewSort("recent");
+                              }}
+                            >
+                              Reset Review Filters
+                            </button>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination Controls */}
+                {adminReviewTotalPages > 1 && (
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginTop: "18px",
+                      padding: "12px 6px"
+                    }}
+                  >
+                    <span style={{ fontSize: "13px", color: "#94a3b8" }}>
+                      Page {adminReviewPage} of {adminReviewTotalPages}
+                    </span>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <button
+                        className="admin-btn-secondary"
+                        disabled={adminReviewPage <= 1}
+                        onClick={() => setAdminReviewPage((p) => Math.max(1, p - 1))}
+                      >
+                        Previous
+                      </button>
+                      <button
+                        className="admin-btn-secondary"
+                        disabled={adminReviewPage >= adminReviewTotalPages}
+                        onClick={() => setAdminReviewPage((p) => p + 1)}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* =========================================================
+              TAB: FLASH SALES MANAGEMENT
+             ========================================================= */}
+          {activeTab === "flash-sales" && (
+            <AdminFlashSalesTab
+              products={products}
+              token={effectiveToken}
+              onViewProduct={onViewProduct}
+              showToast={showToast}
+            />
+          )}
+
+          {/* =========================================================
+              TAB: RETURNS & REFUNDS MANAGEMENT
+             ========================================================= */}
+          {activeTab === "returns" && (
+            <AdminReturnsTab
+              token={effectiveToken}
+              showToast={showToast}
+              onViewProduct={onViewProduct}
+            />
           )}
 
           {/* =========================================================
@@ -1856,14 +3255,11 @@ export default function AdminPanel({
                       className="admin-select"
                       value={editingProduct.category}
                       onChange={e => setEditingProduct({ ...editingProduct, category: e.target.value })}
+                      required
                     >
-                      <option value="Mobiles">Mobiles</option>
-                      <option value="Laptops">Laptops</option>
-                      <option value="Headphones">Headphones</option>
-                      <option value="Smartwatches">Smartwatches</option>
-                      <option value="Earbuds">Earbuds</option>
-                      <option value="Monitors">Monitors</option>
-                      <option value="Accessories">Accessories</option>
+                      {categories.filter(c => c !== "All").map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
                     </select>
                   </div>
 
@@ -1903,12 +3299,109 @@ export default function AdminPanel({
                 </div>
 
                 <div className="admin-form-group">
-                  <label>Image URL</label>
-                  <input
-                    className="admin-input"
-                    value={editingProduct.image}
-                    onChange={e => setEditingProduct({ ...editingProduct, image: e.target.value })}
-                  />
+                  <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span>Product Gallery Images (3 Images)</span>
+                    <span style={{ fontSize: "11px", color: "#94a3b8" }}>Replace any image individually</span>
+                  </label>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "8px" }}>
+                    {[0, 1, 2].map((slotIdx) => {
+                      const imgVal = (editingProduct.images && editingProduct.images[slotIdx]) || (slotIdx === 0 ? editingProduct.image : "");
+                      const slotLabels = [
+                        "Image 1 (Primary Front Display) *",
+                        "Image 2 (Angle / Profile View)",
+                        "Image 3 (Feature / Lifestyle Detail)"
+                      ];
+                      return (
+                        <div
+                          key={slotIdx}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "10px",
+                            background: "rgba(255, 255, 255, 0.03)",
+                            padding: "8px 10px",
+                            borderRadius: "8px",
+                            border: "1px solid #334155"
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: "48px",
+                              height: "48px",
+                              borderRadius: "6px",
+                              background: "#090d16",
+                              border: "1px solid #475569",
+                              overflow: "hidden",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flexShrink: 0
+                            }}
+                          >
+                            {imgVal ? (
+                              <img
+                                key={imgVal}
+                                src={imgVal}
+                                alt={`Slot ${slotIdx + 1}`}
+                                style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                                onError={(e) => { e.target.style.display = "none"; }}
+                              />
+                            ) : (
+                              <span style={{ fontSize: "10px", color: "#64748b" }}>#{slotIdx + 1}</span>
+                            )}
+                          </div>
+
+                          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "3px" }}>
+                            <span style={{ fontSize: "11px", color: "#cbd5e1", fontWeight: "600" }}>{slotLabels[slotIdx]}</span>
+                            <input
+                              className="admin-input"
+                              placeholder={`Image URL #${slotIdx + 1}...`}
+                              value={imgVal}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                const nextImgs = [...(editingProduct.images || ["", "", ""])];
+                                nextImgs[slotIdx] = val;
+                                setEditingProduct({
+                                  ...editingProduct,
+                                  images: nextImgs,
+                                  image: nextImgs[0] || val
+                                });
+                              }}
+                              style={{ height: "34px", fontSize: "12px", padding: "4px 8px" }}
+                              id={`edit-product-image-input-${slotIdx}`}
+                            />
+                          </div>
+
+                          {imgVal && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const nextImgs = [...(editingProduct.images || ["", "", ""])];
+                                nextImgs[slotIdx] = "";
+                                setEditingProduct({
+                                  ...editingProduct,
+                                  images: nextImgs,
+                                  image: nextImgs[0] || ""
+                                });
+                              }}
+                              style={{
+                                background: "transparent",
+                                border: "none",
+                                color: "#f87171",
+                                cursor: "pointer",
+                                padding: "4px",
+                                fontSize: "11px"
+                              }}
+                              title="Clear this image slot"
+                            >
+                              Clear
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 <div className="admin-form-group">
@@ -1960,11 +3453,18 @@ export default function AdminPanel({
                 </div>
 
                 <div>
-                  <h4 style={{ margin: "0 0 6px", color: "#38bdf8", fontSize: "13px" }}>Shipping Address</h4>
+                  <h4 style={{ margin: "0 0 6px", color: "#38bdf8", fontSize: "13px" }}>Shipping & Payment</h4>
                   <div style={{ color: "#cbd5e1", fontSize: "13px" }}>
                     {selectedOrderDetails.customer?.address}
                     {selectedOrderDetails.customer?.city ? `, ${selectedOrderDetails.customer.city}` : ""}
+                    {selectedOrderDetails.customer?.state ? `, ${selectedOrderDetails.customer.state}` : ""}
                     {selectedOrderDetails.customer?.pincode ? ` - ${selectedOrderDetails.customer.pincode}` : ""}
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#94a3b8", marginTop: "6px" }}>
+                    Method: <strong style={{ color: "#e2e8f0" }}>{selectedOrderDetails.paymentMethod || "Cash on Delivery"}</strong>
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#94a3b8" }}>
+                    Payment Status: <strong style={{ color: selectedOrderDetails.paymentStatus === "Paid" ? "#34d399" : "#fbbf24" }}>{selectedOrderDetails.paymentStatus || "Pending"}</strong>
                   </div>
                 </div>
               </div>
@@ -2003,24 +3503,226 @@ export default function AdminPanel({
                 </div>
               </div>
 
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--admin-border)", paddingTop: "14px" }}>
-                <div>
-                  <span style={{ fontSize: "12px", color: "#94a3b8" }}>Current Status: </span>
-                  <span className={`order-status-badge status-${selectedOrderDetails.status}`}>
-                    {selectedOrderDetails.status}
-                  </span>
-                </div>
-                <div>
-                  <span style={{ fontSize: "12px", color: "#94a3b8", marginRight: "8px" }}>Total Amount:</span>
-                  <strong style={{ color: "#34d399", fontSize: "20px" }}>
-                    ₹{(selectedOrderDetails.totalAmount || 0).toLocaleString("en-IN")}
-                  </strong>
+              <div style={{ borderTop: "1px solid var(--admin-border)", paddingTop: "14px", marginTop: "12px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                {selectedOrderDetails.discount > 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#34d399" }}>
+                    <span>Coupon Discount {selectedOrderDetails.couponCode ? `(${selectedOrderDetails.couponCode})` : ""}</span>
+                    <span>−₹{selectedOrderDetails.discount.toLocaleString("en-IN")}</span>
+                  </div>
+                )}
+                {selectedOrderDetails.shippingFee !== undefined && (
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#94a3b8" }}>
+                    <span>Shipping Charges ({selectedOrderDetails.shippingMethod || "Standard"})</span>
+                    <span>{selectedOrderDetails.shippingFee === 0 ? "FREE" : `₹${selectedOrderDetails.shippingFee}`}</span>
+                  </div>
+                )}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "6px" }}>
+                  <div>
+                    <span style={{ fontSize: "12px", color: "#94a3b8" }}>Current Status: </span>
+                    <span className={`order-status-badge status-${selectedOrderDetails.status}`}>
+                      {selectedOrderDetails.status}
+                    </span>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: "12px", color: "#94a3b8", marginRight: "8px" }}>Total Amount:</span>
+                    <strong style={{ color: "#34d399", fontSize: "20px" }}>
+                      ₹{(selectedOrderDetails.totalAmount || 0).toLocaleString("en-IN")}
+                    </strong>
+                  </div>
                 </div>
               </div>
             </div>
 
             <div className="admin-modal-footer">
               <button className="admin-btn-secondary" onClick={() => setSelectedOrderDetails(null)}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CATEGORY MANAGEMENT */}
+      {isCategoryModalOpen && (
+        <div className="admin-cat-modal-overlay" onClick={() => setIsCategoryModalOpen(false)}>
+          <div className="admin-cat-modal" onClick={e => e.stopPropagation()}>
+            <div className="admin-cat-modal-header">
+              <h3>
+                <FolderPlus size={18} color="#38bdf8" />
+                <span>Product Categories Management</span>
+              </h3>
+              <button
+                className="admin-modal-close"
+                onClick={() => setIsCategoryModalOpen(false)}
+                title="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="admin-cat-modal-body">
+              {/* Add New Category Form */}
+              <form onSubmit={handleCreateCategory}>
+                <label style={{ fontSize: "12px", color: "#94a3b8", display: "block", marginBottom: "6px" }}>
+                  Create New Category
+                </label>
+                <div className="admin-cat-add-row">
+                  <input
+                    className="admin-input"
+                    placeholder="e.g. Tablets, Wearables, Cameras..."
+                    value={newCategoryName}
+                    onChange={e => setNewCategoryName(e.target.value)}
+                    style={{ flex: 1 }}
+                  />
+                  <button type="submit" className="admin-action-btn-primary">
+                    <Plus size={16} />
+                    <span>Add Category</span>
+                  </button>
+                </div>
+              </form>
+
+              {/* Existing Categories List */}
+              <div>
+                <label style={{ fontSize: "12px", color: "#94a3b8", display: "block", marginBottom: "10px" }}>
+                  Active Categories &amp; Product Counts ({categories.length - 1} categories)
+                </label>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "320px", overflowY: "auto" }}>
+                  {categories.filter(c => c !== "All").map(catName => {
+                    const count = categoryCounts[catName] || 0;
+                    const IconComp = getCategoryIcon(catName);
+                    const isRenaming = renamingCategory?.oldName === catName;
+
+                    return (
+                      <div key={catName} className="admin-cat-item-row">
+                        <div className="admin-cat-item-info">
+                          <span style={{ color: "#38bdf8", display: "flex" }}>
+                            <IconComp size={16} />
+                          </span>
+                          {isRenaming ? (
+                            <input
+                              className="admin-input"
+                              value={renamingCategory.newName}
+                              onChange={e => setRenamingCategory({ ...renamingCategory, newName: e.target.value })}
+                              style={{ height: "30px", fontSize: "13px", padding: "4px 8px" }}
+                              autoFocus
+                            />
+                          ) : (
+                            <span className="admin-cat-item-name">{catName}</span>
+                          )}
+                          <span className="pill-count" style={{ marginLeft: "6px" }}>
+                            {count} product{count === 1 ? "" : "s"}
+                          </span>
+                        </div>
+
+                        <div className="admin-cat-actions">
+                          {isRenaming ? (
+                            <>
+                              <button
+                                className="action-icon-btn"
+                                onClick={() => handleRenameCategory(catName, renamingCategory.newName)}
+                                title="Save new name"
+                                style={{ color: "#34d399" }}
+                              >
+                                <Check size={14} />
+                              </button>
+                              <button
+                                className="action-icon-btn"
+                                onClick={() => setRenamingCategory(null)}
+                                title="Cancel rename"
+                              >
+                                <X size={14} />
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                className="action-icon-btn"
+                                onClick={() => setRenamingCategory({ oldName: catName, newName: catName })}
+                                title={`Rename ${catName}`}
+                              >
+                                <Edit2 size={13} />
+                              </button>
+                              <button
+                                className="action-icon-btn delete-btn"
+                                onClick={() => handleDeleteCategory(catName)}
+                                title={`Delete ${catName}`}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Safe Reassignment Warning when deleting a category with products */}
+              {deletingCategory && (
+                <div style={{
+                  background: "rgba(239, 68, 68, 0.1)",
+                  border: "1px solid rgba(239, 68, 68, 0.3)",
+                  borderRadius: "10px",
+                  padding: "16px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "12px"
+                }}>
+                  <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
+                    <AlertTriangle size={18} color="#f87171" style={{ flexShrink: 0, marginTop: "2px" }} />
+                    <div style={{ fontSize: "13px", color: "#fca5a5" }}>
+                      <strong>Cannot delete non-empty category:</strong>
+                      <p style={{ margin: "4px 0 0", color: "#f1f5f9" }}>
+                        Category <strong>"{deletingCategory.name}"</strong> currently contains <strong>{deletingCategory.count}</strong> product(s). To delete this category safely, reassign its products to another category:
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+                    <select
+                      className="admin-select"
+                      value={categoryReassignTarget}
+                      onChange={e => setCategoryReassignTarget(e.target.value)}
+                      style={{ flex: 1, minWidth: "200px", height: "38px" }}
+                    >
+                      <option value="">Select Reassignment Category...</option>
+                      {categories.filter(c => c !== "All" && c !== deletingCategory.name).map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+
+                    <button
+                      className="admin-action-btn-primary"
+                      disabled={!categoryReassignTarget}
+                      style={{
+                        background: categoryReassignTarget ? "#ef4444" : "#475569",
+                        cursor: categoryReassignTarget ? "pointer" : "not-allowed"
+                      }}
+                      onClick={() => {
+                        handleDeleteCategory(deletingCategory.name, categoryReassignTarget);
+                        setCategoryReassignTarget("");
+                      }}
+                    >
+                      Reassign &amp; Delete
+                    </button>
+                    <button
+                      className="admin-btn-secondary"
+                      onClick={() => setDeletingCategory(null)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="admin-modal-footer">
+              <button
+                type="button"
+                className="admin-btn-secondary"
+                onClick={() => setIsCategoryModalOpen(false)}
+              >
                 Close
               </button>
             </div>
